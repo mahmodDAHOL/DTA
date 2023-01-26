@@ -3,16 +3,20 @@ import os
 import random
 from collections import OrderedDict
 from pathlib import Path
+
 import numpy as np
+
 # import pconsc4
 
 
 project_path = Path(os.getcwd())
 tool_path = project_path.parent.joinpath("tool")
 
-def create_path(path:Path):
+
+def create_path(path: Path):
     if not path.exists():
         path.mkdir()
+
 
 def seq_format(proteins_dic, output_dir: Path):
     for key, value in proteins_dic.items():
@@ -98,7 +102,7 @@ def alnFilePrepare():
     print('aln file prepare ...')
     datasets = ['davis', 'kiba']
     for dataset in datasets:
-        seq_dir = project_path.joinpath('data', dataset, 'seq') # fasta files
+        seq_dir = project_path.joinpath('data', dataset, 'seq')  # fasta files
         msa_dir = project_path.joinpath('data', dataset, 'msa')
         filter_dir = project_path.joinpath('data', dataset, 'hhfilter')
         reformat_dir = project_path.joinpath('data', dataset, 'reformat')
@@ -124,13 +128,15 @@ def alnFilePrepare():
             'hhsuite/scripts/reformat.pl')   # reformat bin path
         convertAlignment_bin_path = project_path.joinpath(
             'tool/CCMpred/scripts/convert_alignment.py')   # ccmpred convertAlignment bin path
+
         def check_programs(*programs: list[Path]):
             for program in programs:
                 if not program.exists():
                     raise Exception(
                         f'Program {str(program)} was not found. Please specify the run path.')
 
-        check_programs(HHblits_bin_path, HHfilter_bin_path, reformat_bin_path, convertAlignment_bin_path)
+        check_programs(HHblits_bin_path, HHfilter_bin_path,
+                       reformat_bin_path, convertAlignment_bin_path)
 
         seq_format(proteins, seq_dir)
         HHblitsMSA(HHblits_bin_path, HHblits_db_path, seq_dir, msa_dir)

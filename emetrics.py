@@ -1,8 +1,8 @@
-import numpy as np
-import subprocess
 from math import sqrt
-from sklearn.metrics import average_precision_score
+
+import numpy as np
 from scipy import stats
+from sklearn.metrics import average_precision_score
 
 
 def get_aupr(Y, P, threshold=7.0):

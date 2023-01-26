@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch_geometric.nn import GCNConv, GATConv, global_max_pool as gmp, global_add_pool as gap,global_mean_pool as gep,global_sort_pool
-from torch_geometric.utils import dropout_adj
+from torch_geometric.nn import GCNConv
+from torch_geometric.nn import global_mean_pool as gep
 
 
 # GCN based model

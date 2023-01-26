@@ -1,13 +1,13 @@
-import sys, os
+import os
+import sys
+
 import torch
 import torch.nn as nn
-from torch_geometric.data import DataLoader
 
-from gnn import GNNNet
-from utils import *
-from emetrics import *
 from data_process import create_dataset_for_5folds
-
+from emetrics import get_mse
+from gnn import GNNNet
+from utils import collate, predicting, train
 
 datasets = [['davis', 'kiba'][int(sys.argv[1])]]
 
@@ -54,7 +54,8 @@ for dataset in datasets:
     best_mse = 1000
     best_test_mse = 1000
     best_epoch = -1
-    model_file_name = 'models/model_' + model_st + '_' + dataset + '_' + str(fold) + '.model'
+    model_file_name = 'models/model_' + model_st + \
+        '_' + dataset + '_' + str(fold) + '.model'
 
     for epoch in range(NUM_EPOCHS):
         train(model, device, train_loader, optimizer, epoch + 1)
@@ -66,6 +67,8 @@ for dataset in datasets:
             best_mse = val
             best_epoch = epoch + 1
             torch.save(model.state_dict(), model_file_name)
-            print('rmse improved at epoch ', best_epoch, '; best_test_mse', best_mse, model_st, dataset, fold)
+            print('rmse improved at epoch ', best_epoch,
+                  '; best_test_mse', best_mse, model_st, dataset, fold)
         else:
-            print('No improvement since epoch ', best_epoch, '; best_test_mse', best_mse, model_st, dataset, fold)
+            print('No improvement since epoch ', best_epoch,
+                  '; best_test_mse', best_mse, model_st, dataset, fold)

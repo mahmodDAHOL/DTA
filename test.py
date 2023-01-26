@@ -1,16 +1,14 @@
 import os
 import sys
-import torch
-import numpy as np
-from random import shuffle
-import matplotlib.pyplot as plt
-from torch_geometric.data import Batch
 
-from emetrics import get_aupr, get_cindex, get_rm2, get_ci, get_mse, get_rmse, get_pearson, get_spearman
-from utils import *
-from scipy import stats
-from gnn import GNNNet
+import matplotlib.pyplot as plt
+import torch
+
 from data_process import create_dataset_for_test
+from emetrics import (get_ci, get_cindex, get_mse, get_pearson, get_rm2,
+                      get_rmse, get_spearman)
+from gnn import GNNNet
+from utils import *
 
 
 def predicting(model, device, loader):
@@ -25,7 +23,8 @@ def predicting(model, device, loader):
             # data = data.to(device)
             output = model(data_mol, data_pro)
             total_preds = torch.cat((total_preds, output.cpu()), 0)
-            total_labels = torch.cat((total_labels, data_mol.y.view(-1, 1).cpu()), 0)
+            total_labels = torch.cat(
+                (total_labels, data_mol.y.view(-1, 1).cpu()), 0)
     return total_labels.numpy().flatten(), total_preds.numpy().flatten()
 
 
@@ -83,7 +82,8 @@ def plot_density(Y, P, fold=0, dataset='davis'):
     leg = plt.gca().get_legend()
     ltext = leg.get_texts()
     plt.setp(ltext, fontsize=12, fontweight='bold')
-    plt.savefig(os.path.join('results', dataset + '_' + str(fold) + '.png'), dpi=500, bbox_inches='tight')
+    plt.savefig(os.path.join('results', dataset + '_' +
+                str(fold) + '.png'), dpi=500, bbox_inches='tight')
 
 
 if __name__ == '__main__':
@@ -91,7 +91,8 @@ if __name__ == '__main__':
     model_st = GNNNet.__name__
     print('dataset:', dataset)
 
-    cuda_name = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'][int(sys.argv[2])]  # gpu selection
+    cuda_name = ['cuda:0', 'cuda:1', 'cuda:2',
+                 'cuda:3'][int(sys.argv[2])]  # gpu selection
     print('cuda_name:', cuda_name)
 
     TEST_BATCH_SIZE = 512

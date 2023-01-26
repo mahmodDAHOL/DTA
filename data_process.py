@@ -1,38 +1,43 @@
-import pandas as pd
-import numpy as np
+import json
 import os
-import random
-import json, pickle
+import pickle
 from collections import OrderedDict
-from rdkit import Chem
-from rdkit.Chem import MolFromSmiles
-import networkx as nx
 
-from utils import *
+import networkx as nx
+import numpy as np
+import pandas as pd
+from rdkit import Chem
+
+from utils import DTADataset
 
 
 # nomarlize
 def dic_normalize(dic):
-    # print(dic)
+    # get min and max values according to values of passed dictionary
     max_value = dic[max(dic, key=dic.get)]
     min_value = dic[min(dic, key=dic.get)]
     # print(max_value)
     interval = float(max_value) - float(min_value)
+    # loop through all items in dict and normalizing its values
     for key in dic.keys():
         dic[key] = (dic[key] - min_value) / interval
+    # adding new item into dictionary
     dic['X'] = (max_value + min_value) / 2.0
     return dic
 
 
+# make list that contains symbols that represent all possible residue that compose protein
 pro_res_table = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y',
                  'X']
 
+# make lists for symbols that make protein with specific properties [aliphatic, aromatic, polar neutral, acidic charged, basic charged]
 pro_res_aliphatic_table = ['A', 'I', 'L', 'M', 'V']
 pro_res_aromatic_table = ['F', 'W', 'Y']
 pro_res_polar_neutral_table = ['C', 'N', 'Q', 'S', 'T']
 pro_res_acidic_charged_table = ['D', 'E']
 pro_res_basic_charged_table = ['H', 'K', 'R']
 
+# weight of all residues
 res_weight_table = {'A': 71.08, 'C': 103.15, 'D': 115.09, 'E': 129.12, 'F': 147.18, 'G': 57.05, 'H': 137.14,
                     'I': 113.16, 'K': 128.18, 'L': 113.16, 'M': 131.20, 'N': 114.11, 'P': 97.12, 'Q': 128.13,
                     'R': 156.19, 'S': 87.08, 'T': 101.11, 'V': 99.13, 'W': 186.22, 'Y': 163.18}
@@ -61,6 +66,7 @@ res_hydrophobic_ph7_table = {'A': 41, 'C': 49, 'D': -55, 'E': -31, 'F': 100, 'G'
                              'K': -23, 'L': 97, 'M': 74, 'N': -28, 'P': -46, 'Q': -10, 'R': -14, 'S': -5,
                              'T': 13, 'V': 76, 'W': 97, 'Y': 63}
 
+# normalizing all properties values
 res_weight_table = dic_normalize(res_weight_table)
 res_pka_table = dic_normalize(res_pka_table)
 res_pkb_table = dic_normalize(res_pkb_table)
@@ -69,24 +75,23 @@ res_pl_table = dic_normalize(res_pl_table)
 res_hydrophobic_ph2_table = dic_normalize(res_hydrophobic_ph2_table)
 res_hydrophobic_ph7_table = dic_normalize(res_hydrophobic_ph7_table)
 
-
-# print(res_weight_table)
+# get features of passes residue
 
 
 def residue_features(residue):
-    res_property1 = [1 if residue in pro_res_aliphatic_table else 0, 1 if residue in pro_res_aromatic_table else 0,
-                     1 if residue in pro_res_polar_neutral_table else 0,
-                     1 if residue in pro_res_acidic_charged_table else 0,
-                     1 if residue in pro_res_basic_charged_table else 0]
-    res_property2 = [res_weight_table[residue], res_pka_table[residue], res_pkb_table[residue], res_pkx_table[residue],
-                     res_pl_table[residue], res_hydrophobic_ph2_table[residue], res_hydrophobic_ph7_table[residue]]
-    # print(np.array(res_property1 + res_property2).shape)
+    properties_list = [pro_res_aliphatic_table, pro_res_aromatic_table,
+                       pro_res_polar_neutral_table, pro_res_acidic_charged_table, pro_res_basic_charged_table]
+
+    properties_list2 = [res_weight_table, res_pka_table, res_pkb_table, res_pkx_table,
+                        res_pl_table, res_hydrophobic_ph2_table, res_hydrophobic_ph7_table]
+    res_property1 = [1 if residue in table else 0 for table in properties_list]
+    res_property2 = [table[residue] for table in properties_list2]
     return np.array(res_property1 + res_property2)
 
 
 # mol atom feature for mol graph
 def atom_features(atom):
-    # 44 +11 +11 +11 +1
+    # return a boolean list with length equals to (44 +11 +11 +11 +1) represents atom features
     return np.array(one_of_k_encoding_unk(atom.GetSymbol(),
                                           ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'As',
                                            'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb', 'Sb', 'Sn', 'Ag', 'Pd', 'Co', 'Se',
@@ -101,8 +106,8 @@ def atom_features(atom):
 # one ont encoding
 def one_of_k_encoding(x, allowable_set):
     if x not in allowable_set:
-        # print(x)
-        raise Exception('input {0} not in allowable set{1}:'.format(x, allowable_set))
+        raise Exception(
+            f'input {x} not in allowable set{allowable_set}')
     return list(map(lambda s: x == s, allowable_set))
 
 
@@ -121,7 +126,10 @@ def smile_to_graph(smile):
 
     features = []
     for atom in mol.GetAtoms():
+        # get boolean list
         feature = atom_features(atom)
+        # divide each item in list by its length, true = 1 , false = 0
+        # so this values (feature / sum(feature)) represrnts number of true relative to false
         features.append(feature / sum(feature))
 
     edges = []
@@ -132,13 +140,11 @@ def smile_to_graph(smile):
     mol_adj = np.zeros((c_size, c_size))
     for e1, e2 in g.edges:
         mol_adj[e1, e2] = 1
-        # edge_index.append([e1, e2])
-    mol_adj += np.matrix(np.eye(mol_adj.shape[0]))
+    mol_adj += np.matrix(np.eye(mol_adj.shape[0]))  # there is self edge
+    # NOTE: why 0.5 while the matrix contain either 0 or 1
     index_row, index_col = np.where(mol_adj >= 0.5)
     for i, j in zip(index_row, index_col):
         edge_index.append([i, j])
-    # print('smile_to_graph')
-    # print(np.array(features).shape)
     return c_size, features, edge_index
 
 
@@ -158,14 +164,9 @@ def PSSM_calculation(aln_file, pro_seq):
                     continue
                 pfm_mat[pro_res_table.index(res), count] += 1
                 count += 1
-    # ppm_mat = pfm_mat / float(line_count)
     pseudocount = 0.8
     ppm_mat = (pfm_mat + pseudocount / 4) / (float(line_count) + pseudocount)
     pssm_mat = ppm_mat
-    # k = float(len(pro_res_table))
-    # pwm_mat = np.log2(ppm_mat / (1.0 / k))
-    # pssm_mat = pwm_mat
-    # print(pssm_mat)
     return pssm_mat
 
 
@@ -173,31 +174,21 @@ def seq_feature(pro_seq):
     pro_hot = np.zeros((len(pro_seq), len(pro_res_table)))
     pro_property = np.zeros((len(pro_seq), 12))
     for i in range(len(pro_seq)):
-        # if 'X' in pro_seq:
-        #     print(pro_seq)
-        pro_hot[i,] = one_of_k_encoding(pro_seq[i], pro_res_table)
-        pro_property[i,] = residue_features(pro_seq[i])
+        # NOTE: why [i, ] not [i] only
+        pro_hot[i, ] = one_of_k_encoding(pro_seq[i], pro_res_table)
+        pro_property[i, ] = residue_features(pro_seq[i])
     return np.concatenate((pro_hot, pro_property), axis=1)
 
 
 def target_feature(aln_file, pro_seq):
     pssm = PSSM_calculation(aln_file, pro_seq)
     other_feature = seq_feature(pro_seq)
-    # print('target_feature')
-    # print(pssm.shape)
-    # print(other_feature.shape)
-
-    # print(other_feature.shape)
-    # return other_feature
     return np.concatenate((np.transpose(pssm, (1, 0)), other_feature), axis=1)
 
 
 # target aln file save in data/dataset/aln
 def target_to_feature(target_key, target_sequence, aln_dir):
-    # aln_dir = 'data/' + dataset + '/aln'
     aln_file = os.path.join(aln_dir, target_key + '.aln')
-    # if 'X' in target_sequence:
-    #     print(target_key)
     feature = target_feature(aln_file, target_sequence)
     return feature
 
@@ -206,7 +197,6 @@ def target_to_feature(target_key, target_sequence, aln_dir):
 def target_to_graph(target_key, target_sequence, contact_dir, aln_dir):
     target_edge_index = []
     target_size = len(target_sequence)
-    # contact_dir = 'data/' + dataset + '/pconsc4'
     contact_file = os.path.join(contact_dir, target_key + '.npy')
     contact_map = np.load(contact_file)
     contact_map += np.matrix(np.eye(contact_map.shape[0]))
@@ -242,8 +232,10 @@ def create_dataset_for_test(dataset):
     # load dataset
     dataset_path = 'data/' + dataset + '/'
     test_fold = json.load(open(dataset_path + 'folds/test_fold_setting1.txt'))
-    ligands = json.load(open(dataset_path + 'ligands_can.txt'), object_pairs_hook=OrderedDict)
-    proteins = json.load(open(dataset_path + 'proteins.txt'), object_pairs_hook=OrderedDict)
+    ligands = json.load(open(dataset_path + 'ligands_can.txt'),
+                        object_pairs_hook=OrderedDict)
+    proteins = json.load(open(dataset_path + 'proteins.txt'),
+                         object_pairs_hook=OrderedDict)
     affinity = pickle.load(open(dataset_path + 'Y', 'rb'), encoding='latin1')
     # load contact and aln
     msa_path = 'data/' + dataset + '/aln'
@@ -260,7 +252,8 @@ def create_dataset_for_test(dataset):
     drug_smiles = []
     # smiles
     for d in ligands.keys():
-        lg = Chem.MolToSmiles(Chem.MolFromSmiles(ligands[d]), isomericSmiles=True)
+        lg = Chem.MolToSmiles(Chem.MolFromSmiles(
+            ligands[d]), isomericSmiles=True)
         drugs.append(lg)
         drug_smiles.append(ligands[d])
     # seqs
@@ -289,7 +282,8 @@ def create_dataset_for_test(dataset):
     csv_file = 'data/' + dataset + '_test.csv'
     data_to_csv(csv_file, temp_test_entries)
     print('dataset:', dataset)
-    print('test entries:', len(test_fold), 'effective test entries', valid_test_count)
+    print('test entries:', len(test_fold),
+          'effective test entries', valid_test_count)
 
     compound_iso_smiles = drugs
     target_key = prot_keys
@@ -311,15 +305,18 @@ def create_dataset_for_test(dataset):
         target_graph[key] = g
 
     # count the number of  proteins with aln and contact files
-    print('effective drugs,effective prot:', len(smile_graph), len(target_graph))
+    print('effective drugs,effective prot:',
+          len(smile_graph), len(target_graph))
     if len(smile_graph) == 0 or len(target_graph) == 0:
-        raise Exception('no protein or drug, run the script for datasets preparation.')
+        raise Exception(
+            'no protein or drug, run the script for datasets preparation.')
 
     # 'data/davis_test.csv' or data/kiba_test.csv'
     df_test = pd.read_csv('data/' + dataset + '_test.csv')
     test_drugs, test_prot_keys, test_Y = list(df_test['compound_iso_smiles']), list(df_test['target_key']), list(
         df_test['affinity'])
-    test_drugs, test_prot_keys, test_Y = np.asarray(test_drugs), np.asarray(test_prot_keys), np.asarray(test_Y)
+    test_drugs, test_prot_keys, test_Y = np.asarray(
+        test_drugs), np.asarray(test_prot_keys), np.asarray(test_Y)
     test_dataset = DTADataset(root='data', dataset=dataset + '_test', xd=test_drugs, y=test_Y,
                               target_key=test_prot_keys, smile_graph=smile_graph, target_graph=target_graph)
 
@@ -329,11 +326,14 @@ def create_dataset_for_test(dataset):
 def create_dataset_for_5folds(dataset, fold=0):
     # load dataset
     dataset_path = 'data/' + dataset + '/'
-    train_fold_origin = json.load(open(dataset_path + 'folds/train_fold_setting1.txt'))
+    train_fold_origin = json.load(
+        open(dataset_path + 'folds/train_fold_setting1.txt'))
     train_fold_origin = [e for e in train_fold_origin]  # for 5 folds
 
-    ligands = json.load(open(dataset_path + 'ligands_can.txt'), object_pairs_hook=OrderedDict)
-    proteins = json.load(open(dataset_path + 'proteins.txt'), object_pairs_hook=OrderedDict)
+    ligands = json.load(open(dataset_path + 'ligands_can.txt'),
+                        object_pairs_hook=OrderedDict)
+    proteins = json.load(open(dataset_path + 'proteins.txt'),
+                         object_pairs_hook=OrderedDict)
     # load contact and aln
     msa_path = 'data/' + dataset + '/aln'
     contac_path = 'data/' + dataset + '/pconsc4'
@@ -357,7 +357,8 @@ def create_dataset_for_5folds(dataset, fold=0):
     drug_smiles = []
     # smiles
     for d in ligands.keys():
-        lg = Chem.MolToSmiles(Chem.MolFromSmiles(ligands[d]), isomericSmiles=True)
+        lg = Chem.MolToSmiles(Chem.MolFromSmiles(
+            ligands[d]), isomericSmiles=True)
         drugs.append(lg)
         drug_smiles.append(ligands[d])
     # seqs
@@ -377,7 +378,8 @@ def create_dataset_for_5folds(dataset, fold=0):
             rows, cols = rows[train_folds], cols[train_folds]
             train_fold_entries = []
             for pair_ind in range(len(rows)):
-                if not valid_target(prot_keys[cols[pair_ind]], dataset):  # ensure the contact and aln files exists
+                # ensure the contact and aln files exists
+                if not valid_target(prot_keys[cols[pair_ind]], dataset):
                     continue
                 ls = []
                 ls += [drugs[rows[pair_ind]]]
@@ -387,7 +389,8 @@ def create_dataset_for_5folds(dataset, fold=0):
                 train_fold_entries.append(ls)
                 valid_train_count += 1
 
-            csv_file = 'data/' + dataset + '_' + 'fold_' + str(fold) + '_' + opt + '.csv'
+            csv_file = 'data/' + dataset + '_' + \
+                'fold_' + str(fold) + '_' + opt + '.csv'
             data_to_csv(csv_file, train_fold_entries)
         elif opt == 'valid':
             rows, cols = np.where(np.isnan(affinity) == False)
@@ -404,15 +407,18 @@ def create_dataset_for_5folds(dataset, fold=0):
                 valid_fold_entries.append(ls)
                 valid_valid_count += 1
 
-            csv_file = 'data/' + dataset + '_' + 'fold_' + str(fold) + '_' + opt + '.csv'
+            csv_file = 'data/' + dataset + '_' + \
+                'fold_' + str(fold) + '_' + opt + '.csv'
             data_to_csv(csv_file, valid_fold_entries)
     print('dataset:', dataset)
     # print('len(set(drugs)),len(set(prots)):', len(set(drugs)), len(set(prots)))
 
     # entries with protein contact and aln files are marked as effiective
     print('fold:', fold)
-    print('train entries:', len(train_folds), 'effective train entries', valid_train_count)
-    print('valid entries:', len(valid_fold), 'effective valid entries', valid_valid_count)
+    print('train entries:', len(train_folds),
+          'effective train entries', valid_train_count)
+    print('valid entries:', len(valid_fold),
+          'effective valid entries', valid_valid_count)
 
     compound_iso_smiles = drugs
     target_key = prot_keys
@@ -434,21 +440,25 @@ def create_dataset_for_5folds(dataset, fold=0):
         target_graph[key] = g
 
     # count the number of  proteins with aln and contact files
-    print('effective drugs,effective prot:', len(smile_graph), len(target_graph))
+    print('effective drugs,effective prot:',
+          len(smile_graph), len(target_graph))
     if len(smile_graph) == 0 or len(target_graph) == 0:
-        raise Exception('no protein or drug, run the script for datasets preparation.')
+        raise Exception(
+            'no protein or drug, run the script for datasets preparation.')
 
     # 'data/davis_fold_0_train.csv' or data/kiba_fold_0__train.csv'
-    train_csv = 'data/' + dataset + '_' + 'fold_' + str(fold) + '_' + 'train' + '.csv'
+    train_csv = 'data/' + dataset + '_' + \
+        'fold_' + str(fold) + '_' + 'train' + '.csv'
     df_train_fold = pd.read_csv(train_csv)
     train_drugs, train_prot_keys, train_Y = list(df_train_fold['compound_iso_smiles']), list(
         df_train_fold['target_key']), list(df_train_fold['affinity'])
-    train_drugs, train_prot_keys, train_Y = np.asarray(train_drugs), np.asarray(train_prot_keys), np.asarray(train_Y)
+    train_drugs, train_prot_keys, train_Y = np.asarray(
+        train_drugs), np.asarray(train_prot_keys), np.asarray(train_Y)
     train_dataset = DTADataset(root='data', dataset=dataset + '_' + 'train', xd=train_drugs, target_key=train_prot_keys,
                                y=train_Y, smile_graph=smile_graph, target_graph=target_graph)
 
-
-    df_valid_fold = pd.read_csv('data/' + dataset + '_' + 'fold_' + str(fold) + '_' + 'valid' + '.csv')
+    df_valid_fold = pd.read_csv(
+        'data/' + dataset + '_' + 'fold_' + str(fold) + '_' + 'valid' + '.csv')
     valid_drugs, valid_prots_keys, valid_Y = list(df_valid_fold['compound_iso_smiles']), list(
         df_valid_fold['target_key']), list(df_valid_fold['affinity'])
     valid_drugs, valid_prots_keys, valid_Y = np.asarray(valid_drugs), np.asarray(valid_prots_keys), np.asarray(
