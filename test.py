@@ -1,14 +1,20 @@
 import os
-import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import torch
+import typer
+from torch.utils.data import DataLoader
 
-from data_process import create_dataset_for_test
+from data_process import create_test_data
 from emetrics import (get_ci, get_cindex, get_mse, get_pearson, get_rm2,
                       get_rmse, get_spearman)
 from gnn import GNNNet
-from utils import *
+from utils import collate
+import constants 
+
+project_path = Path(os.getcwd())
+model_st = GNNNet.__name__
 
 
 def predicting(model, device, loader):
@@ -51,11 +57,8 @@ def calculate_metrics(Y, P, dataset='davis'):
     print('mse:', mse)
     print('pearson', pearson)
 
-    result_file_name = 'results/result_' + model_st + '_' + dataset + '.txt'
-    result_str = ''
-    result_str += dataset + '\r\n'
-    result_str += 'rmse:' + str(rmse) + ' ' + ' mse:' + str(mse) + ' ' + ' pearson:' + str(
-        pearson) + ' ' + 'spearman:' + str(spearman) + ' ' + 'ci:' + str(cindex) + ' ' + 'rm2:' + str(rm2)
+    result_file_name = project_path.joinpath(f'results\result_{model_st}_{dataset}.txt')
+    result_str = f'dataset \r\n rmse:{str(rmse)}  mse:{str(mse)} pearson:{str(pearson)} spearman:{str(spearman)} ci:{str(cindex)} rm2:{str(rm2)}'
     print(result_str)
     open(result_file_name, 'w').writelines(result_str)
 
@@ -82,34 +85,31 @@ def plot_density(Y, P, fold=0, dataset='davis'):
     leg = plt.gca().get_legend()
     ltext = leg.get_texts()
     plt.setp(ltext, fontsize=12, fontweight='bold')
-    plt.savefig(os.path.join('results', dataset + '_' +
-                str(fold) + '.png'), dpi=500, bbox_inches='tight')
+    plt.savefig(os.path.join('results', f'{dataset}_{str(fold)}.png'), dpi=500, bbox_inches='tight')
 
 
-if __name__ == '__main__':
-    dataset = ['davis', 'kiba'][int(sys.argv[1])]  # dataset selection
-    model_st = GNNNet.__name__
-    print('dataset:', dataset)
+def main(dataset_name: str = typer.Option(..., prompt=True),
+         cuda_name: str = typer.Option(..., prompt=True),
+         ):
 
-    cuda_name = ['cuda:0', 'cuda:1', 'cuda:2',
-                 'cuda:3'][int(sys.argv[2])]  # gpu selection
+    print('dataset:', dataset_name)
     print('cuda_name:', cuda_name)
-
+    dataset_path = constants.davis_dataset_path if dataset_name == "davis" else constants.kiba_dataset_path 
     TEST_BATCH_SIZE = 512
-    models_dir = 'models'
-    results_dir = 'results'
+    models_dir = project_path.joinpath('models')
 
     device = torch.device(cuda_name if torch.cuda.is_available() else 'cpu')
-    model_file_name = 'models/model_' + model_st + '_' + dataset + '.model'
-    result_file_name = 'results/result_' + model_st + '_' + dataset + '.txt'
+    model_file_name = models_dir.joinpath(f'model_{model_st}_{dataset_name}.model')
 
     model = GNNNet()
     model.to(device)
     model.load_state_dict(torch.load(model_file_name, map_location=cuda_name))
-    test_data = create_dataset_for_test(dataset)
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=TEST_BATCH_SIZE, shuffle=False,
+    test_data = create_test_data(dataset_path)
+    test_loader = DataLoader(test_data, batch_size=TEST_BATCH_SIZE, shuffle=False,
                                               collate_fn=collate)
 
     Y, P = predicting(model, device, test_loader)
-    calculate_metrics(Y, P, dataset)
-    # plot_density(Y, P, fold, dataset)
+    calculate_metrics(Y, P, dataset_name )
+    # plot_density(Y, P, dataset_name)
+if __name__ == "__main__":
+    typer.run(main)

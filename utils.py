@@ -1,28 +1,27 @@
 import os
 
 import torch
+from torch import device
+from torch.optim import Adam
+from torch.utils.data import DataLoader
+# torch_geometric.data provides useful functionality for analyzing graph structures, and provides basic PyTorch tensor functionalities.
 from torch_geometric import data as DATA
 from torch_geometric.data import Batch, InMemoryDataset
+
+from gnn import GNNNet
 
 
 # initialize the dataset
 class DTADataset(InMemoryDataset):
-    def __init__(self, root='/tmp', dataset='davis',
-                 xd=None, y=None, transform=None,
-                 pre_transform=None, smile_graph=None, target_key=None, target_graph=None):
+    def __init__(self, root, dataset_name, xd, y, smile_graph, target_key, target_graph):
 
-        super(DTADataset, self).__init__(root, transform, pre_transform)
-        self.dataset = dataset
+        super(DTADataset, self).__init__(root)
+        self.dataset_name = dataset_name
         self.process(xd, target_key, y, smile_graph, target_graph)
 
     @property
-    def raw_file_names(self):
-        pass
-        # return ['some_file_1', 'some_file_2', ...]
-
-    @property
     def processed_file_names(self):
-        return [self.dataset + '_data_mol.pt', self.dataset + '_data_pro.pt']
+        return [self.dataset_name + '_data_mol.pt', self.dataset_name + '_data_pro.pt']
 
     def download(self):
         # Download to `self.raw_dir`.
@@ -36,8 +35,7 @@ class DTADataset(InMemoryDataset):
             os.makedirs(self.processed_dir)
 
     def process(self, xd, target_key, y, smile_graph, target_graph):
-        assert (len(xd) == len(target_key) and len(xd) == len(
-            y)), 'The three lists must be the same length!'
+        assert (len(xd) == len(target_key) and len(xd) == len(y)), 'The three lists must be the same length!'
         data_list_mol = []
         data_list_pro = []
         data_len = len(xd)
@@ -52,17 +50,14 @@ class DTADataset(InMemoryDataset):
             # print(target_features.shape, target_edge_index.shape)
             # make the graph ready for PyTorch Geometrics GCN algorithms:
             GCNData_mol = DATA.Data(x=torch.Tensor(features),
-                                    edge_index=torch.LongTensor(
-                                        edge_index).transpose(1, 0),
+                                    edge_index=torch.LongTensor(edge_index).transpose(1, 0),
                                     y=torch.FloatTensor([labels]))
             GCNData_mol.__setitem__('c_size', torch.LongTensor([c_size]))
 
             GCNData_pro = DATA.Data(x=torch.Tensor(target_features),
-                                    edge_index=torch.LongTensor(
-                                        target_edge_index).transpose(1, 0),
+                                    edge_index=torch.LongTensor(target_edge_index).transpose(1, 0),
                                     y=torch.FloatTensor([labels]))
-            GCNData_pro.__setitem__(
-                'target_size', torch.LongTensor([target_size]))
+            GCNData_pro.__setitem__('target_size', torch.LongTensor([target_size]))
             # print(GCNData.target.size(), GCNData.target_edge_index.size(), GCNData.target_x.size())
             data_list_mol.append(GCNData_mol)
             data_list_pro.append(GCNData_pro)
@@ -88,8 +83,8 @@ class DTADataset(InMemoryDataset):
 
 
 # training function at each epoch
-def train(model, device, train_loader, optimizer, epoch):
-    print('Training on {} samples...'.format(len(train_loader.dataset)))
+def train(model: GNNNet, device: device, train_loader: DataLoader, optimizer: Adam, epoch: int):
+    print(f'Training on {len(train_loader.dataset)} samples...')
     model.train()
     LOG_INTERVAL = 10
     TRAIN_BATCH_SIZE = 512
@@ -117,7 +112,7 @@ def predicting(model, device, loader):
     model.eval()
     total_preds = torch.Tensor()
     total_labels = torch.Tensor()
-    print('Make prediction for {} samples...'.format(len(loader.dataset)))
+    print(f'Make prediction for {len(loader.dataset)} samples...')
     with torch.no_grad():
         for data in loader:
             data_mol = data[0].to(device)
