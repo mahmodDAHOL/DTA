@@ -1,4 +1,5 @@
 import os
+import pickle
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -6,12 +7,11 @@ import torch
 import typer
 from torch.utils.data import DataLoader
 
-from data_process import create_test_data
+import constants
 from emetrics import (get_ci, get_cindex, get_mse, get_pearson, get_rm2,
                       get_rmse, get_spearman)
 from gnn import GNNNet
 from utils import collate
-import constants 
 
 project_path = Path(os.getcwd())
 model_st = GNNNet.__name__
@@ -90,10 +90,9 @@ def plot_density(Y, P, fold=0, dataset='davis'):
 
 def main(dataset_name: str = typer.Option(..., prompt=True),
          cuda_name: str = typer.Option(..., prompt=True),
+         fold: int = typer.Option(..., prompt=True),
          ):
 
-    print('dataset:', dataset_name)
-    print('cuda_name:', cuda_name)
     dataset_path = constants.davis_dataset_path if dataset_name == "davis" else constants.kiba_dataset_path 
     TEST_BATCH_SIZE = 512
     models_dir = project_path.joinpath('models')
@@ -104,7 +103,9 @@ def main(dataset_name: str = typer.Option(..., prompt=True),
     model = GNNNet()
     model.to(device)
     model.load_state_dict(torch.load(model_file_name, map_location=cuda_name))
-    test_data = create_test_data(dataset_path)
+    test_data_path = dataset_path.joinpath(f'processed/fold{fold}/test-{dataset_name}.pickle')
+
+    test_data = pickle.load(test_data_path.open('rb'))
     test_loader = DataLoader(test_data, batch_size=TEST_BATCH_SIZE, shuffle=False,
                                               collate_fn=collate)
 

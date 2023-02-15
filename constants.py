@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-
 project_path = Path(os.getcwd())
 kiba_dataset_path = project_path.joinpath("data/kiba")
 davis_dataset_path = project_path.joinpath("data/davis")
