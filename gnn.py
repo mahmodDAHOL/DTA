@@ -6,10 +6,17 @@ from torch_geometric.nn import global_mean_pool as gep
 
 # GCN based model
 class GNNNet(torch.nn.Module):
-    def __init__(self, n_output=1, num_features_pro=54, num_features_mol=78, output_dim=128, dropout=0.2):
+    def __init__(
+        self,
+        n_output=1,
+        num_features_pro=54,
+        num_features_mol=78,
+        output_dim=128,
+        dropout=0.2,
+    ):
         super(GNNNet, self).__init__()
 
-        print('GNNNet Loaded')
+        print("GNNNet Loaded")
         self.n_output = n_output
         self.mol_conv1 = GCNConv(num_features_mol, num_features_mol)
         self.mol_conv2 = GCNConv(num_features_mol, num_features_mol * 2)
@@ -35,9 +42,17 @@ class GNNNet(torch.nn.Module):
 
     def forward(self, data_mol, data_pro):
         # get graph input
-        mol_x, mol_edge_index, mol_batch = data_mol.x, data_mol.edge_index, data_mol.batch
+        mol_x, mol_edge_index, mol_batch = (
+            data_mol.x,
+            data_mol.edge_index,
+            data_mol.batch,
+        )
         # get protein input
-        target_x, target_edge_index, target_batch = data_pro.x, data_pro.edge_index, data_pro.batch
+        target_x, target_edge_index, target_batch = (
+            data_pro.x,
+            data_pro.edge_index,
+            data_pro.batch,
+        )
 
         # target_seq=data_pro.target
 
