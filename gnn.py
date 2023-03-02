@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+from torch import nn
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool as gep
 
@@ -13,8 +13,8 @@ class GNNNet(torch.nn.Module):
         num_features_mol=78,
         output_dim=128,
         dropout=0.2,
-    ):
-        super(GNNNet, self).__init__()
+    ) -> None:
+        super().__init__()
 
         print("GNNNet Loaded")
         self.n_output = n_output
@@ -24,11 +24,9 @@ class GNNNet(torch.nn.Module):
         self.mol_fc_g1 = torch.nn.Linear(num_features_mol * 4, 1024)
         self.mol_fc_g2 = torch.nn.Linear(1024, output_dim)
 
-        # self.pro_conv1 = GCNConv(embed_dim, embed_dim)
         self.pro_conv1 = GCNConv(num_features_pro, num_features_pro)
         self.pro_conv2 = GCNConv(num_features_pro, num_features_pro * 2)
         self.pro_conv3 = GCNConv(num_features_pro * 2, num_features_pro * 4)
-        # self.pro_conv4 = GCNConv(embed_dim * 4, embed_dim * 8)
         self.pro_fc_g1 = torch.nn.Linear(num_features_pro * 4, 1024)
         self.pro_fc_g2 = torch.nn.Linear(1024, output_dim)
 
@@ -54,20 +52,14 @@ class GNNNet(torch.nn.Module):
             data_pro.batch,
         )
 
-        # target_seq=data_pro.target
 
-        # print('size')
-        # print('mol_x', mol_x.size(), 'edge_index', mol_edge_index.size(), 'batch', mol_batch.size())
-        # print('target_x', target_x.size(), 'target_edge_index', target_batch.size(), 'batch', target_batch.size())
 
         x = self.mol_conv1(mol_x, mol_edge_index)
         x = self.relu(x)
 
-        # mol_edge_index, _ = dropout_adj(mol_edge_index, training=self.training)
         x = self.mol_conv2(x, mol_edge_index)
         x = self.relu(x)
 
-        # mol_edge_index, _ = dropout_adj(mol_edge_index, training=self.training)
         x = self.mol_conv3(x, mol_edge_index)
         x = self.relu(x)
         x = gep(x, mol_batch)  # global pooling
@@ -81,16 +73,12 @@ class GNNNet(torch.nn.Module):
         xt = self.pro_conv1(target_x, target_edge_index)
         xt = self.relu(xt)
 
-        # target_edge_index, _ = dropout_adj(target_edge_index, training=self.training)
         xt = self.pro_conv2(xt, target_edge_index)
         xt = self.relu(xt)
 
-        # target_edge_index, _ = dropout_adj(target_edge_index, training=self.training)
         xt = self.pro_conv3(xt, target_edge_index)
         xt = self.relu(xt)
 
-        # xt = self.pro_conv4(xt, target_edge_index)
-        # xt = self.relu(xt)
         xt = gep(xt, target_batch)  # global pooling
 
         # flatten
@@ -99,7 +87,6 @@ class GNNNet(torch.nn.Module):
         xt = self.pro_fc_g2(xt)
         xt = self.dropout(xt)
 
-        # print(x.size(), xt.size())
         # concat
         xc = torch.cat((x, xt), 1)
         # add some dense layers

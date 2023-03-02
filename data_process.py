@@ -20,7 +20,7 @@ def dic_normalize(dic: dict[str, float]) -> dict[str, float]:
     min_value = dic[min(dic, key=dic.get)]  # type: ignore
     interval = float(max_value) - float(min_value)
     # loop through all items in dict and normalizing its values
-    for key in dic.keys():
+    for key in dic:
         dic[key] = (dic[key] - min_value) / interval
     # adding new item into dictionary
     dic["X"] = (max_value + min_value) / 2.0
@@ -102,7 +102,7 @@ def smile_to_graph(smile: str) -> Graph:
 
 def PSSM_calculation(aln_file: Path, pro_seq: str) -> np.ndarray:
     pfm_mat = np.zeros((len(constants.pro_res_list), len(pro_seq)))
-    with open(aln_file, "r") as f:
+    with open(aln_file) as f:
         line_count = len(f.readlines())
         for line in f.readlines():
             if len(line) != len(pro_seq):
@@ -180,7 +180,7 @@ def validate(
     affinity: np.ndarray,
     folds: list,
 ) -> tuple:
-    """get combinations of drugs and proteins with affinity strength when meet with each other"""
+    """get combinations of drugs and proteins with affinity strength when meet with each other."""
     prot_keys = list(proteins_dict.keys())
     rows, cols = np.where(np.isnan(affinity) == False)
     rows, cols = rows[folds], cols[folds]
@@ -237,7 +237,7 @@ def create_data(dataset_path: Path, fold_setting: list) -> DTADataset:
     target_graph_dict = {}
     for key in tqdm(proteins_dict.keys(), desc="converting proteins to graphs"):
         target_graph_dict[key] = target_to_graph(dataset_path, key, proteins_dict[key])
-
+    
     dataset = DTADataset(
         root=str(dataset_path),
         drugs=np.array(smiles),

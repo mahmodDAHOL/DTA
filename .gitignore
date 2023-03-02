@@ -1,6 +1,8 @@
 data
 .vscode
+.ruff_cache
 __pycache__/
+venv
 models
 results
 test

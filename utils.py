@@ -1,7 +1,6 @@
 import pickle
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import torch
@@ -33,9 +32,9 @@ class DTADataset(InMemoryDataset):
         target_key: np.ndarray,
         smile_graph_dict: dict[str, Graph],
         target_graph_dict: dict[str, Graph],
-    ):
+    ) -> None:
 
-        super(DTADataset, self).__init__(root)
+        super().__init__(root)
         self.dataset_path = Path(root)
         self.process(drugs, target_key, y, smile_graph_dict, target_graph_dict)
 

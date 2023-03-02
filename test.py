@@ -28,12 +28,11 @@ def predicting(model, device, loader):
     model.eval()
     total_preds = torch.Tensor()
     total_labels = torch.Tensor()
-    print("Make prediction for {} samples...".format(len(loader.dataset)))
+    print(f"Make prediction for {len(loader.dataset)} samples...")
     with torch.no_grad():
         for data in loader:
             data_mol = data[0].to(device)
             data_pro = data[1].to(device)
-            # data = data.to(device)
             output = model(data_mol, data_pro)
             total_preds = torch.cat((total_preds, output.cpu()), 0)
             total_labels = torch.cat((total_labels, data_mol.y.view(-1, 1).cpu()), 0)
@@ -46,7 +45,6 @@ def load_model(model_path):
 
 
 def calculate_metrics(Y, P, dataset="davis"):
-    # aupr = get_aupr(Y, P)
     cindex = get_cindex(Y, P)  # DeepDTA
     cindex2 = get_ci(Y, P)  # GraphDTA
     rm2 = get_rm2(Y, P)  # DeepDTA
@@ -56,7 +54,6 @@ def calculate_metrics(Y, P, dataset="davis"):
     rmse = get_rmse(Y, P)
 
     print("metrics for ", dataset)
-    # print('aupr:', aupr)
     print("cindex:", cindex)
     print("cindex2", cindex2)
     print("rm2:", rm2)
@@ -80,13 +77,10 @@ def plot_density(Y, P, fold=0, dataset="davis"):
     plt.title("density of " + dataset, fontsize=30, fontweight="bold")
     plt.xlabel("predicted", fontsize=30, fontweight="bold")
     plt.ylabel("measured", fontsize=30, fontweight="bold")
-    # plt.xlim(0, 21)
-    # plt.ylim(0, 21)
     if dataset == "davis":
         plt.plot([5, 11], [5, 11], color="black")
     else:
         plt.plot([6, 16], [6, 16], color="black")
-    # plt.legend()
     plt.legend(loc=0, numpoints=1)
     leg = plt.gca().get_legend()
     ltext = leg.get_texts()
@@ -101,7 +95,7 @@ def plot_density(Y, P, fold=0, dataset="davis"):
 def main(
     dataset_name: str = typer.Option(..., prompt=True),
     cuda_name: str = typer.Option(..., prompt=True),
-    fold: int = typer.Option(..., prompt=True),
+    fold_number: int = typer.Option(..., prompt=True),
 ):
 
     dataset_path = (
@@ -119,7 +113,7 @@ def main(
     model.to(device)
     model.load_state_dict(torch.load(model_file_name, map_location=cuda_name))
     test_data_path = dataset_path.joinpath(
-        f"processed/fold{fold}/test-{dataset_name}.pickle"
+        f"processed/fold{fold_number}/test-{dataset_name}.pickle"
     )
 
     test_data = pickle.load(test_data_path.open("rb"))
@@ -129,7 +123,6 @@ def main(
 
     Y, P = predicting(model, device, test_loader)
     calculate_metrics(Y, P, dataset_name)
-    # plot_density(Y, P, dataset_name)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,6 @@ from sklearn.metrics import average_precision_score
 
 
 def get_aupr(Y, P, threshold=7.0):
-    # print(Y.shape,P.shape)
     Y = np.where(Y >= 7.0, 1, 0)
     P = np.where(P >= 7.0, 1, 0)
     aupr = average_precision_score(Y, P)
@@ -19,10 +18,9 @@ def get_cindex(Y, P):
 
     for i in range(1, len(Y)):
         for j in range(0, i):
-            if i is not j:
-                if Y[i] > Y[j]:
-                    pair += 1
-                    summ += 1 * (P[i] > P[j]) + 0.5 * (P[i] == P[j])
+            if i is not j and Y[i] > Y[j]:
+                pair += 1
+                summ += 1 * (P[i] > P[j]) + 0.5 * (P[i] == P[j])
 
     if pair != 0:
         return summ / pair

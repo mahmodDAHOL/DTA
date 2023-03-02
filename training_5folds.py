@@ -12,7 +12,7 @@ from utils import collate, predicting, train
 
 def main(
     cuda_name: str = typer.Option(..., prompt=True),
-    fold: int = typer.Option(..., prompt=True),
+    fold_number: int = typer.Option(..., prompt=True),
 ):
     datasets = ["davis", "kiba"]
 
@@ -34,7 +34,7 @@ def main(
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
     for dataset_name in datasets:
-        model_file_name = f"model_{model_st}_{dataset_name}_{fold}.model"
+        model_file_name = f"model_{model_st}_{dataset_name}_{fold_number}.model"
         dataset_path = (
             constants.davis_dataset_path
             if dataset_name == "davis"
@@ -42,10 +42,10 @@ def main(
         )
 
         train_data_path = dataset_path.joinpath(
-            f"processed/fold{fold}/train-{dataset_name}-{fold}.pickle"
+            f"processed/fold{fold_number}/train-{dataset_name}-{fold_number}.pickle"
         )
         valid_data_path = dataset_path.joinpath(
-            f"processed/fold{fold}/valid-{dataset_name}-{fold}.pickle"
+            f"processed/fold{fold_number}/valid-{dataset_name}-{fold_number}.pickle"
         )
         if all([train_data_path.exists(), valid_data_path.exists()]):
             # train_data[0] :: (Data(x=[25, 78], edge_index=[2, 79], y=[1], c_size=[1]),
@@ -54,8 +54,8 @@ def main(
             valid_data = pickle.load(valid_data_path.open("rb"))
         else:
             raise FileNotFoundError(
-                f"""you have to run data_procecss.py file in order to create processed 
-                data files in {train_data_path} and {valid_data_path} and give it fold 
+                f"""you have to run data_procecss.py file in order to create processed
+                data files in {train_data_path} and {valid_data_path} and give it fold
                 number that is same to fold number when you run this file"""
             )
 
@@ -82,11 +82,11 @@ def main(
                 best_epoch = epoch + 1
                 torch.save(model.state_dict(), model_file_path)
                 print(
-                    f"rmse improved at epoch {best_epoch}; {best_test_mse} {best_mse} {model_st} {dataset_path} {fold}"
+                    f"rmse improved at epoch {best_epoch}; {best_test_mse} {best_mse} {model_st} {dataset_path} {fold_number}"
                 )
             else:
                 print(
-                    f"No improvement since epoch{best_epoch}; {best_test_mse} {best_mse} {model_st} {dataset_path} {fold}"
+                    f"No improvement since epoch{best_epoch}; {best_test_mse} {best_mse} {model_st} {dataset_path} {fold_number}"
                 )
 
 
