@@ -1,4 +1,4 @@
-import pickle
+import shelve
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,10 +33,11 @@ class DTADataset(InMemoryDataset):
         smile_graph_dict: dict[str, Graph],
         target_graph_dict: dict[str, Graph],
     ) -> None:
-
         super().__init__(root)
         self.dataset_path = Path(root)
         self.process(drugs, target_key, y, smile_graph_dict, target_graph_dict)
+        self.dataset_name = self.dataset_path.stem
+        self.processed_data_path = self.dataset_path.joinpath("processedDB")
 
     @property
     def processed_file_names(self):
@@ -88,19 +89,10 @@ class DTADataset(InMemoryDataset):
     def __getitem__(self, idx):
         return self.data_mol[idx], self.data_pro[idx]  # type: ignore
 
-    def save(self, fold_number: int, type: str):
-        dataset_name = self.dataset_path.stem
-        processed_data_path = self.dataset_path.joinpath(f"processed/fold{fold_number}")
-        file_path = processed_data_path.joinpath(
-            f"{type}-{dataset_name}-{fold_number}.pl"
-        )
-
-        folder_path = file_path.parent
-        folder_path.mkdir(exist_ok=True)
-        for folder in reversed(list(folder_path.parents)):
-            folder.mkdir(exist_ok=True)
-            if not file_path.exists():
-                pickle.dump(self, open(file_path, "wb"))
+    def save(self, fold_number: int, _type: str):
+        with shelve.open(str(self.processed_data_path)) as db:
+            data_name = f"{_type}-{self.dataset_name}-{fold_number}"
+            db[data_name] = self
 
 
 def _convert(graph: Graph, labels) -> DATA.Data:
@@ -117,8 +109,7 @@ def _convert(graph: Graph, labels) -> DATA.Data:
 # training function at each epoch
 def train(
     model: GNNNet, device: device, train_loader: DataLoader, optimizer: Adam, epoch: int
-):
-
+) -> None:
     print(f"Training on {len(train_loader.dataset)} samples...")  # type: ignore
     model.train()
     LOG_INTERVAL = 10
@@ -141,11 +132,13 @@ def train(
             )
 
 
-def predicting(model, device, loader):
+def predicting(
+    model: GNNNet, device: torch.device, loader: DataLoader
+) -> tuple[np.ndarray, np.ndarray]:
     model.eval()
     total_preds = torch.Tensor()
     total_labels = torch.Tensor()
-    print(f"Make prediction for {len(loader.dataset)} samples...")
+    print(f"Make prediction for {len(loader.dataset)} samples...")  # type: ignore
     with torch.no_grad():
         for data in loader:
             data_mol = data[0].to(device)

@@ -2,17 +2,9 @@ from math import sqrt
 
 import numpy as np
 from scipy import stats
-from sklearn.metrics import average_precision_score
 
 
-def get_aupr(Y, P, threshold=7.0):
-    Y = np.where(Y >= 7.0, 1, 0)
-    P = np.where(P >= 7.0, 1, 0)
-    aupr = average_precision_score(Y, P)
-    return aupr
-
-
-def get_cindex(Y, P):
+def get_cindex(Y: np.ndarray, P: np.ndarray) -> float:
     summ = 0
     pair = 0
 
@@ -28,11 +20,11 @@ def get_cindex(Y, P):
         return 0
 
 
-def r_squared_error(y_obs, y_pred):
+def r_squared_error(y_obs: np.ndarray, y_pred: np.ndarray) -> float:
     y_obs = np.array(y_obs)
     y_pred = np.array(y_pred)
-    y_obs_mean = [np.mean(y_obs) for y in y_obs]
-    y_pred_mean = [np.mean(y_pred) for y in y_pred]
+    y_obs_mean = np.array([np.mean(y_obs) for y in y_obs])
+    y_pred_mean = np.array([np.mean(y_pred) for y in y_pred])
 
     mult = sum((y_pred - y_pred_mean) * (y_obs - y_obs_mean))
     mult = mult * mult
@@ -50,46 +42,46 @@ def get_k(y_obs, y_pred):
     return sum(y_obs * y_pred) / float(sum(y_pred * y_pred))
 
 
-def squared_error_zero(y_obs, y_pred):
+def squared_error_zero(y_obs: np.ndarray, y_pred: np.ndarray) -> float:
     k = get_k(y_obs, y_pred)
 
     y_obs = np.array(y_obs)
     y_pred = np.array(y_pred)
-    y_obs_mean = [np.mean(y_obs) for y in y_obs]
+    y_obs_mean = np.array([np.mean(y_obs) for y in y_obs])
     upp = sum((y_obs - (k * y_pred)) * (y_obs - (k * y_pred)))
     down = sum((y_obs - y_obs_mean) * (y_obs - y_obs_mean))
 
     return 1 - (upp / float(down))
 
 
-def get_rm2(ys_orig, ys_line):
+def get_rm2(ys_orig: np.ndarray, ys_line: np.ndarray) -> float:
     r2 = r_squared_error(ys_orig, ys_line)
     r02 = squared_error_zero(ys_orig, ys_line)
 
     return r2 * (1 - np.sqrt(np.absolute((r2 * r2) - (r02 * r02))))
 
 
-def get_rmse(y, f):
+def get_rmse(y: np.ndarray, f: np.ndarray) -> float:
     rmse = sqrt(((y - f) ** 2).mean(axis=0))
     return rmse
 
 
-def get_mse(y, f):
+def get_mse(y: np.ndarray, f: np.ndarray) -> float:
     mse = ((y - f) ** 2).mean(axis=0)
     return mse
 
 
-def get_pearson(y, f):
+def get_pearson(y: np.ndarray, f: np.ndarray) -> float:
     rp = np.corrcoef(y, f)[0, 1]
     return rp
 
 
-def get_spearman(y, f):
+def get_spearman(y: np.ndarray, f: np.ndarray) -> float:
     rs = stats.spearmanr(y, f)[0]
     return rs
 
 
-def get_ci(y, f):
+def get_ci(y: np.ndarray, f: np.ndarray) -> float:
     ind = np.argsort(y)
     y = y[ind]
     f = f[ind]

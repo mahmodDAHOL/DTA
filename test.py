@@ -1,13 +1,15 @@
 import os
-import pickle
+import shelve
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import typer
 from torch.utils.data import DataLoader
 
 import constants
+from data_process import create_test_data
 from emetrics import (
     get_ci,
     get_cindex,
@@ -18,25 +20,10 @@ from emetrics import (
     get_spearman,
 )
 from gnn import GNNNet
-from utils import collate
+from utils import collate, predicting
 
 project_path = Path(os.getcwd())
 model_st = GNNNet.__name__
-
-
-def predicting(model, device, loader):
-    model.eval()
-    total_preds = torch.Tensor()
-    total_labels = torch.Tensor()
-    print(f"Make prediction for {len(loader.dataset)} samples...")
-    with torch.no_grad():
-        for data in loader:
-            data_mol = data[0].to(device)
-            data_pro = data[1].to(device)
-            output = model(data_mol, data_pro)
-            total_preds = torch.cat((total_preds, output.cpu()), 0)
-            total_labels = torch.cat((total_labels, data_mol.y.view(-1, 1).cpu()), 0)
-    return total_labels.numpy().flatten(), total_preds.numpy().flatten()
 
 
 def load_model(model_path):
@@ -44,7 +31,7 @@ def load_model(model_path):
     return model
 
 
-def calculate_metrics(Y, P, dataset="davis"):
+def calculate_metrics(Y: np.ndarray, P: np.ndarray, dataset: str) -> None:
     cindex = get_cindex(Y, P)  # DeepDTA
     cindex2 = get_ci(Y, P)  # GraphDTA
     rm2 = get_rm2(Y, P)  # DeepDTA
@@ -97,7 +84,6 @@ def main(
     cuda_name: str = typer.Option(..., prompt=True),
     fold_number: int = typer.Option(..., prompt=True),
 ):
-
     dataset_path = (
         constants.davis_dataset_path
         if dataset_name == "davis"
@@ -112,11 +98,15 @@ def main(
     model = GNNNet()
     model.to(device)
     model.load_state_dict(torch.load(model_file_name, map_location=cuda_name))
-    test_data_path = dataset_path.joinpath(
-        f"processed/fold{fold_number}/test-{dataset_name}.pickle"
-    )
 
-    test_data = pickle.load(test_data_path.open("rb"))
+    processed_data_path = dataset_path.joinpath("processedDB")
+    if processed_data_path:
+        with shelve.open(str(processed_data_path)) as db:
+            test_data_name = f"test-{dataset_name}-{fold_number}"
+            test_data = db[test_data_name]
+    else:
+        test_data = create_test_data(dataset_path)
+
     test_loader = DataLoader(
         test_data, batch_size=TEST_BATCH_SIZE, shuffle=False, collate_fn=collate
     )

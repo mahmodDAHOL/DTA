@@ -1,10 +1,11 @@
-import pickle
+import shelve
 
 import torch
 import typer
 from torch.utils.data import DataLoader
 
 import constants
+from data_process import create_train_data
 from emetrics import get_mse
 from gnn import GNNNet
 from utils import collate, predicting, train
@@ -40,24 +41,16 @@ def main(
             if dataset_name == "davis"
             else constants.kiba_dataset_path
         )
+        processed_data_path = dataset_path.joinpath("processedDB")
+        if processed_data_path:
+            with shelve.open(str(processed_data_path)) as db:
+                train_data_name = f"train-{dataset_name}-{fold_number}"
+                valid_data_name = f"valid-{dataset_name}-{fold_number}"
 
-        train_data_path = dataset_path.joinpath(
-            f"processed/fold{fold_number}/train-{dataset_name}-{fold_number}.pickle"
-        )
-        valid_data_path = dataset_path.joinpath(
-            f"processed/fold{fold_number}/valid-{dataset_name}-{fold_number}.pickle"
-        )
-        if all([train_data_path.exists(), valid_data_path.exists()]):
-            # train_data[0] :: (Data(x=[25, 78], edge_index=[2, 79], y=[1], c_size=[1]),
-            #                   Data(x=[1338, 54], edge_index=[2, 8774], y=[1], target_size=[1]))
-            train_data = pickle.load(train_data_path.open("rb"))
-            valid_data = pickle.load(valid_data_path.open("rb"))
+                train_data = db[train_data_name]
+                valid_data = db[valid_data_name]
         else:
-            raise FileNotFoundError(
-                f"""you have to run data_procecss.py file in order to create processed
-                data files in {train_data_path} and {valid_data_path} and give it fold
-                number that is same to fold number when you run this file"""
-            )
+            train_data, valid_data = create_train_data(dataset_path, fold=fold_number)
 
         train_loader = DataLoader(
             train_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate

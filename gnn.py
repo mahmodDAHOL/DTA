@@ -52,8 +52,6 @@ class GNNNet(torch.nn.Module):
             data_pro.batch,
         )
 
-
-
         x = self.mol_conv1(mol_x, mol_edge_index)
         x = self.relu(x)
 
