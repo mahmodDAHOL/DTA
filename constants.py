@@ -209,7 +209,7 @@ residual_properties = [
     res_hydrophobic_ph7_dict,
 ]
 
-protien_properties = [
+protein_properties = [
     pro_res_aliphatic_list,
     pro_res_aromatic_list,
     pro_res_polar_neutral_list,

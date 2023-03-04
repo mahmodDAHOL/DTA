@@ -1,4 +1,3 @@
-
 """
 Data Processing.
 
@@ -25,8 +24,8 @@ from utils import DTADataset, Graph
 
 def dic_normalize(dic: dict[str, float]) -> dict[str, float]:
     # get min and max values according to values of passed dictionary
-    max_value = dic[max(dic, key=dic.get)] # type: ignore
-    min_value = dic[min(dic, key=dic.get)] # type: ignore
+    max_value = dic[max(dic, key=dic.get)]  # type: ignore
+    min_value = dic[min(dic, key=dic.get)]  # type: ignore
     interval = float(max_value) - float(min_value)
     # loop through all items in dict and normalizing its values
     for key in dic:
@@ -38,7 +37,7 @@ def dic_normalize(dic: dict[str, float]) -> dict[str, float]:
 
 def residue_features(norm_res_prop: list[dict], residue: str) -> np.ndarray:
     res_property1 = [
-        1 if residue in _list else 0 for _list in constants.protien_properties
+        1 if residue in _list else 0 for _list in constants.protein_properties
     ]
     res_property2 = [_dict[residue] for _dict in norm_res_prop]
     return np.array(res_property1 + res_property2)
@@ -57,8 +56,11 @@ def one_of_k_encoding(x: str, allowable_set: list, unk: bool = False) -> list[bo
 
 # mol atom feature for mol graph
 def atom_features(atom: Chem.rdchem.Atom) -> np.ndarray:
-    atom_sym = one_of_k_encoding(
-        atom.GetSymbol(), constants.atom_symbols, unk=True)
+    """
+    "
+    Extract featues from passed atom.
+    """
+    atom_sym = one_of_k_encoding(atom.GetSymbol(), constants.atom_symbols, unk=True)
     atom_deg = one_of_k_encoding(atom.GetDegree(), list(range(11)))
     atom_total_num_hs = one_of_k_encoding(
         atom.GetTotalNumHs(), list(range(11)), unk=True
@@ -82,6 +84,10 @@ def atom_features(atom: Chem.rdchem.Atom) -> np.ndarray:
 
 # mol smile to mol graph edge index
 def smile_to_graph(smile: str) -> Graph:
+    """
+    "
+    Convert passed smile ligand to graph object.
+    """
     mol = Chem.MolFromSmiles(smile)  # type: ignore
     c_size = mol.GetNumAtoms()
     features = []
@@ -111,7 +117,7 @@ def smile_to_graph(smile: str) -> Graph:
 
 
 def pssm_calculation(aln_file: Path, pro_seq: str) -> np.ndarray:
-    """Return pssm matrix."""
+    """Extraxt pssm matrix from protein sequence and protein alignment."""
     pfm_mat = np.zeros((len(constants.pro_res_list), len(pro_seq)))
     with Path(aln_file).open() as f:
         line_count = len(f.readlines())
@@ -130,6 +136,7 @@ def pssm_calculation(aln_file: Path, pro_seq: str) -> np.ndarray:
 
 
 def seq_feature(norm_res_prop: list[dict], pro_seq: str) -> np.ndarray:
+    """Extract features from protrin sequence."""
     pro_hot = np.zeros((len(pro_seq), len(constants.pro_res_list)))
     pro_property = np.zeros((len(pro_seq), 12))
     for i in range(len(pro_seq)):
@@ -141,15 +148,19 @@ def seq_feature(norm_res_prop: list[dict], pro_seq: str) -> np.ndarray:
 def target_to_feature(
     norm_res_prop: list[dict], target_key: str, target_sequence: str, aln_dir: Path
 ) -> list:
+    """Extract features from protrin."""
     aln_file = aln_dir.joinpath(f"{target_key}.aln")
     pssm = pssm_calculation(aln_file, target_sequence)
     other_feature = seq_feature(norm_res_prop, target_sequence)
-    feature = np.concatenate(
-        (np.transpose(pssm, (1, 0)), other_feature), axis=1)
+    feature = np.concatenate((np.transpose(pssm, (1, 0)), other_feature), axis=1)
     return feature.tolist()
 
 
 def target_to_graph(dataset_path: Path, target_key: str, target_sequence: str) -> Graph:
+    """
+    "
+    Convert passed protein to graph object.
+    """
     aln_dir = dataset_path.joinpath("aln")
     contact_dir = dataset_path.joinpath("pconsc4")
 
@@ -171,11 +182,17 @@ def target_to_graph(dataset_path: Path, target_key: str, target_sequence: str) -
     target_feature = target_to_feature(
         norm_res_prop, target_key, target_sequence, aln_dir
     )
-    return Graph(np.array(target_size), np.array(target_feature), np.array(target_edge_index))
+    return Graph(
+        np.array(target_size), np.array(target_feature), np.array(target_edge_index)
+    )
 
 
 # to judge whether the required files exist
 def valid_target(file_name: str, dataset_path: Path) -> bool:
+    """
+    "
+    Make sure that the passed protein file has corresponding pconsc4 and align files.
+    """
     contact_file = dataset_path.joinpath(f"pconsc4/{file_name}.npy")
     aln_file = dataset_path.joinpath(f"aln/{file_name}.aln")
     return all([contact_file.exists(), aln_file.exists()])
@@ -209,15 +226,17 @@ def validate(
 
 @cache
 def load_data(dataset_path: Path) -> tuple[list, dict, np.ndarray, dict, dict]:
+    """
+    Load the ligands and proteins data and affinities file the represents the affinity
+    strength of combinations of each ligand and protein.
+    """
     dataset_name = dataset_path.stem
     ligands_file = dataset_path.joinpath("ligands.txt")
     proteins_file = dataset_path.joinpath("proteins.txt")
     affinities_file = dataset_path.joinpath("affinities")
 
-    ligands = json.load(Path(ligands_file).open(),
-                        object_pairs_hook=OrderedDict)
-    proteins_dict = json.load(
-        Path(proteins_file).open(), object_pairs_hook=OrderedDict)
+    ligands = json.load(Path(ligands_file).open(), object_pairs_hook=OrderedDict)
+    proteins_dict = json.load(Path(proteins_file).open(), object_pairs_hook=OrderedDict)
     affinity = pickle.load(open(affinities_file, "rb"), encoding="latin1")
 
     if dataset_name == "davis":
@@ -225,8 +244,10 @@ def load_data(dataset_path: Path) -> tuple[list, dict, np.ndarray, dict, dict]:
     mol_drugs = []
     ligands_dict = {}
     for d in tqdm(ligands.keys(), desc=f"loading data from {str(dataset_path)}"):
-        ligand = Chem.MolToSmiles(Chem.MolFromSmiles( # type: ignore
-            ligands[d]), isomericSmiles=True)  
+        ligand = Chem.MolToSmiles(  # type: ignore
+            Chem.MolFromSmiles(ligands[d]),  # type: ignore
+            isomericSmiles=True,
+        )
         ligands_dict[d] = ligand
         mol_drugs.append(ligand)
 
@@ -237,17 +258,19 @@ def load_data(dataset_path: Path) -> tuple[list, dict, np.ndarray, dict, dict]:
 
     target_graph_dict = {}
     for key in tqdm(proteins_dict.keys(), desc="converting proteins to graphs"):
-        target_graph_dict[key] = target_to_graph(
-            dataset_path, key, proteins_dict[key])
+        target_graph_dict[key] = target_to_graph(dataset_path, key, proteins_dict[key])
 
     return mol_drugs, proteins_dict, affinity, smile_graph_dict, target_graph_dict
 
 
 def create_data(dataset_path: Path, fold_setting: list) -> DTADataset:
+    """Create DTADataset object after loading data and validat it."""
     mol_drugs, proteins_dict, affinity, smile_graph_dict, target_graph_dict = load_data(
-        dataset_path)
+        dataset_path
+    )
     smiles, prot_names, affinity = validate(
-        dataset_path, mol_drugs, proteins_dict, affinity, fold_setting)
+        dataset_path, mol_drugs, proteins_dict, affinity, fold_setting
+    )
     return DTADataset(
         root=str(dataset_path),
         drugs=np.array(smiles),
@@ -259,8 +282,8 @@ def create_data(dataset_path: Path, fold_setting: list) -> DTADataset:
 
 
 def create_test_data(dataset_path: Path) -> DTADataset:
-    test_file = Path(dataset_path.joinpath(
-        "folds/test_fold_setting1.txt")).open()
+    """Create DTADataset object for test data."""
+    test_file = Path(dataset_path.joinpath("folds/test_fold_setting1.txt")).open()
     fold_setting = json.load(test_file)
     return create_data(dataset_path, fold_setting)
 
@@ -268,6 +291,7 @@ def create_test_data(dataset_path: Path) -> DTADataset:
 def create_train_data(
     dataset_path: Path, fold: int = 0
 ) -> tuple[DTADataset, DTADataset]:
+    """Create DTADataset object for train and validation data."""
     train_file = dataset_path.joinpath("folds/train_fold_setting1.txt")
     train_fold_origin = json.load(Path(train_file).open())
     valid_fold = train_fold_origin.pop(fold)  # get one element
@@ -278,10 +302,14 @@ def create_train_data(
 
 
 def main(fold_number: int = typer.Option(..., prompt=True)) -> None:
+    """
+    "
+    Create DTADataset object for train, test and validation data
+    and save them in disk.
+    """
     for data in ["davis", "kiba"]:
         dataset_path = constants.project_path.joinpath(f"data/{data}")
-        train_dataset, valid_dataset = create_train_data(
-            dataset_path, fold_number)
+        train_dataset, valid_dataset = create_train_data(dataset_path, fold_number)
         test_dataset = create_test_data(dataset_path)
         train_dataset.save(fold_number, "train")
         valid_dataset.save(fold_number, "valid")
