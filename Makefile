@@ -11,6 +11,11 @@ install: requirements.txt
 	python -m venv $(VENV)
 	$(PYTHON) -m pip install --upgrade pip
 	$(PIP) install -r requirements.txt
+	$(PIP) install --no-index torch-scatter -f https://pytorch-geometric.com/whl/torch-1.12.1+cpu.html
+	$(PIP) install --no-index torch-sparse -f https://pytorch-geometric.com/whl/torch-1.12.1+cpu.html
+	$(PIP) install --no-index torch-cluster -f https://pytorch-geometric.com/whl/torch-1.12.1+cpu.html
+	$(PIP) install --no-index torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.12.1+cpu.html
+	$(PIP) install torch-geometric
 
 format: $(VENV)/bin/ruff
 	$(RUFF) check --fix --select ALL --ignore "E712","COM812","D212","D203" .

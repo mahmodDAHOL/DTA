@@ -29,11 +29,6 @@ six==1.16.0
 threadpoolctl==3.1.0
 tomli==2.0.1
 torch==1.12.1
-torch-cluster==1.6.0+pt112cpu
-torch-geometric==2.2.0
-torch-scatter==2.1.0+pt112cpu
-torch-sparse==0.6.16+pt112cpu
-torch-spline-conv==1.2.1+pt112cpu
 tqdm==4.62.3
 typer==0.7.0
 typing_extensions==4.5.0
