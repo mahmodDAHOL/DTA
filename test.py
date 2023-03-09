@@ -9,6 +9,7 @@ import typer
 from torch.utils.data import DataLoader
 
 import constants
+from data_process import create_test_data
 from emetrics import (
     get_ci,
     get_cindex,
@@ -99,9 +100,12 @@ def main(
     model.load_state_dict(torch.load(model_file_name, map_location=cuda_name))
 
     processed_data_path = dataset_path.joinpath("processedDB")
-    with shelve.open(str(processed_data_path)) as db:
-        test_data_name = f"test-{dataset_name}-{fold_number}"
-        test_data = db[test_data_name]
+    if processed_data_path:
+        with shelve.open(str(processed_data_path)) as db:
+            test_data_name = f"test-{dataset_name}-{fold_number}"
+            test_data = db[test_data_name]
+    else:
+        test_data = create_test_data(dataset_path)
 
     test_loader = DataLoader(
         test_data, batch_size=TEST_BATCH_SIZE, shuffle=False, collate_fn=collate

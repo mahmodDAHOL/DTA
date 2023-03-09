@@ -23,8 +23,8 @@ format: $(VENV)/bin/ruff
 
 run: $(VENV)/bin/python
 	$(PYTHON) data_process.py --fold-number 4
-	$(PYTHON) training_5folds.py --cuda_name "" fold-number 4 
-	$(PYTHON) test.py --dataset-name "davis" --cuda_name "" fold-number 4
+	$(PYTHON) training_5folds.py --cuda-name "" --fold-number 4 
+	$(PYTHON) test.py --dataset-name "davis" --cuda-name "" --fold-number 4
 
 clean:
 	rm -rf __pycache__ .ruff_cache

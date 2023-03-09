@@ -5,6 +5,7 @@ import typer
 from torch.utils.data import DataLoader
 
 import constants
+from data_process import create_train_data
 from emetrics import get_mse
 from gnn import GNNNet
 from utils import collate, predicting, train
@@ -41,12 +42,15 @@ def main(
             else constants.kiba_dataset_path
         )
         processed_data_path = dataset_path.joinpath("processedDB")
-        with shelve.open(str(processed_data_path)) as db:
-            train_data_name = f"train-{dataset_name}-{fold_number}"
-            valid_data_name = f"valid-{dataset_name}-{fold_number}"
+        if processed_data_path:
+            with shelve.open(str(processed_data_path)) as db:
+                train_data_name = f"train-{dataset_name}-{fold_number}"
+                valid_data_name = f"valid-{dataset_name}-{fold_number}"
 
-            train_data = db[train_data_name]
-            valid_data = db[valid_data_name]
+                train_data = db[train_data_name]
+                valid_data = db[valid_data_name]
+        else:
+            train_data, valid_data = create_train_data(dataset_path, fold=fold_number)
 
         train_loader = DataLoader(
             train_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate

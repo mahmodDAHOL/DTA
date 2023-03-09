@@ -36,6 +36,8 @@ class DTADataset(InMemoryDataset):
         super().__init__(root)
         self.dataset_path = Path(root)
         self.process(drugs, target_key, y, smile_graph_dict, target_graph_dict)
+        self.dataset_name = self.dataset_path.stem
+        self.processed_data_path = self.dataset_path.joinpath("processedDB")
 
     @property
     def processed_file_names(self):
@@ -88,11 +90,8 @@ class DTADataset(InMemoryDataset):
         return self.data_mol[idx], self.data_pro[idx]  # type: ignore
 
     def save(self, fold_number: int, _type: str):
-        dataset_name = self.dataset_path.stem
-        processed_data_path = self.dataset_path.joinpath("processedDB")
-
-        with shelve.open(str(processed_data_path)) as db:
-            data_name = f"{_type}-{dataset_name}-{fold_number}"
+        with shelve.open(str(self.processed_data_path)) as db:
+            data_name = f"{_type}-{self.dataset_name}-{fold_number}"
             db[data_name] = self
 
 
