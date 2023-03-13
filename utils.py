@@ -1,6 +1,8 @@
+import pickle
 import shelve
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import torch
@@ -11,6 +13,7 @@ from torch.utils.data import DataLoader
 # torch_geometric.data provides useful functionality for analyzing graph structures, and provides basic PyTorch tensor functionalities.
 from torch_geometric import data as DATA
 from torch_geometric.data import Batch, InMemoryDataset
+from tqdm import tqdm
 
 from gnn import GNNNet
 
@@ -55,24 +58,24 @@ class DTADataset(InMemoryDataset):
     def process(
         self,
         drugs: np.ndarray,
-        target_key: np.ndarray,
+        target_keys: np.ndarray,
         y: np.ndarray,
         smile_graph_dict: dict[str, Graph],
         target_graph_dict: dict[str, Graph],
     ):
-        assert len(drugs) == len(target_key) and len(drugs) == len(
+        assert len(drugs) == len(target_keys) and len(drugs) == len(
             y
         ), "The three lists must be the same length!"
         data_list_mol = []
         data_list_pro = []
         data_len = len(drugs)
         for i in range(data_len):
-            smiles = drugs[i]
-            tar_key = target_key[i]
+            smile = drugs[i]
+            tar_key = target_keys[i]
             labels = y[i]
             # convert SMILES to molecular representation using rdkit
-            smile_graph: Graph = smile_graph_dict[smiles]
-            target_graph: Graph = target_graph_dict[tar_key]
+            smile_graph: Graph = smile_graph_dict[str(smile)]
+            target_graph: Graph = target_graph_dict[str(tar_key)]
 
             GCNData_mol = _convert(smile_graph, labels)
             GCNData_pro = _convert(target_graph, labels)
@@ -104,6 +107,31 @@ def _convert(graph: Graph, labels) -> DATA.Data:
     GCNData.__setitem__("size", torch.LongTensor(graph.size))
 
     return GCNData
+
+
+def to_graph(
+    dataset_path: Path, file_name: str, dict_data: dict, to_graph_func: Callable
+) -> dict[str, Graph]:
+    processed_file = dataset_path.joinpath(file_name)
+    data_type = file_name.split("_")[0]
+    if not processed_file.exists():
+        if data_type == "smiles":
+            graph_dict = {}
+            for key in tqdm(
+                dict_data.values(), desc=f"converting {data_type} to graphs"
+            ):
+                graph_dict[key] = to_graph_func(key)
+        else:
+            graph_dict = {}
+            for key in tqdm(dict_data.keys(), desc=f"converting {data_type} to graphs"):
+                graph = to_graph_func(dataset_path, key, dict_data[key])
+                if graph != 0:
+                    graph_dict[key] = to_graph_func(dataset_path, key, dict_data[key])
+        pickle.dump(graph_dict, processed_file.open("wb"))
+    else:
+        graph_dict = pickle.load(processed_file.open("rb"))
+
+    return graph_dict
 
 
 # training function at each epoch
