@@ -1,3 +1,4 @@
+"""Train GNN model."""
 import shelve
 
 import torch
@@ -14,7 +15,7 @@ from utils import collate, predicting, train
 def main(
     cuda_name: str = typer.Option(..., prompt=True),
     fold_number: int = typer.Option(..., prompt=True),
-):
+) -> None:
     datasets = ["davis", "kiba"]
 
     BATCH_SIZE = 512
@@ -75,11 +76,13 @@ def main(
                 best_epoch = epoch + 1
                 torch.save(model.state_dict(), model_file_path)
                 print(
-                    f"rmse improved at epoch {best_epoch}; {best_test_mse} {best_mse} {model_st} {dataset_path} {fold_number}"
+                    f"""rmse improved at epoch {best_epoch}; {best_test_mse}
+                    {best_mse} {model_st} {dataset_path} {fold_number}"""
                 )
             else:
                 print(
-                    f"No improvement since epoch{best_epoch}; {best_test_mse} {best_mse} {model_st} {dataset_path} {fold_number}"
+                    f"""No improvement since epoch{best_epoch}; {best_test_mse}
+                    {best_mse} {model_st} {dataset_path} {fold_number}"""
                 )
 
 

@@ -1,23 +1,25 @@
+"""Contains all functions for evaluating the model performance."""
 from math import sqrt
 
 import numpy as np
 from scipy import stats
 
 
-def get_cindex(Y: np.ndarray, P: np.ndarray) -> float:
+def get_cindex(label: np.ndarray, predicted: np.ndarray) -> float:
     summ = 0
     pair = 0
 
-    for i in range(1, len(Y)):
+    for i in range(1, len(label)):
         for j in range(0, i):
-            if i is not j and Y[i] > Y[j]:
+            if i is not j and label[i] > label[j]:
                 pair += 1
-                summ += 1 * (P[i] > P[j]) + 0.5 * (P[i] == P[j])
+                summ += 1 * (predicted[i] > predicted[j]) + 0.5 * (
+                    predicted[i] == predicted[j]
+                )
 
     if pair != 0:
         return summ / pair
-    else:
-        return 0
+    return 0
 
 
 def r_squared_error(y_obs: np.ndarray, y_pred: np.ndarray) -> float:
@@ -35,7 +37,7 @@ def r_squared_error(y_obs: np.ndarray, y_pred: np.ndarray) -> float:
     return mult / float(y_obs_sq * y_pred_sq)
 
 
-def get_k(y_obs, y_pred):
+def get_k(y_obs: list, y_pred: list) -> float:
     y_obs = np.array(y_obs)
     y_pred = np.array(y_pred)
 
@@ -62,23 +64,19 @@ def get_rm2(ys_orig: np.ndarray, ys_line: np.ndarray) -> float:
 
 
 def get_rmse(y: np.ndarray, f: np.ndarray) -> float:
-    rmse = sqrt(((y - f) ** 2).mean(axis=0))
-    return rmse
+    return sqrt(((y - f) ** 2).mean(axis=0))
 
 
 def get_mse(y: np.ndarray, f: np.ndarray) -> float:
-    mse = ((y - f) ** 2).mean(axis=0)
-    return mse
+    return ((y - f) ** 2).mean(axis=0)
 
 
 def get_pearson(y: np.ndarray, f: np.ndarray) -> float:
-    rp = np.corrcoef(y, f)[0, 1]
-    return rp
+    return np.corrcoef(y, f)[0, 1]
 
 
 def get_spearman(y: np.ndarray, f: np.ndarray) -> float:
-    rs = stats.spearmanr(y, f)[0]
-    return rs
+    return stats.spearmanr(y, f)[0]
 
 
 def get_ci(y: np.ndarray, f: np.ndarray) -> float:
@@ -101,5 +99,4 @@ def get_ci(y: np.ndarray, f: np.ndarray) -> float:
             j = j - 1
         i = i - 1
         j = i - 1
-    ci = S / z
-    return ci
+    return S / z
