@@ -18,7 +18,7 @@ install: requirements.txt
 	$(PIP) install torch-geometric
 
 format: $(VENV)/bin/ruff
-	$(RUFF) check --fix --select ALL --ignore "E712","COM812","D212","D203" .
+	$(RUFF) check --fix --select ALL --ignore "E712","COM812","D212","D203","UP007","N806","TCH003","TCH002","TCH001","D105","ANN101","PLR0913","PGH003","D102","D107","D205","FBT001","FBT002","B905","B008" .
 	$(BLACK) .
 
 run: $(VENV)/bin/python

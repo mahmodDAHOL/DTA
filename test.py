@@ -1,4 +1,4 @@
-import os
+"""Contain functions for test the model from test dataset."""
 import shelve
 from pathlib import Path
 
@@ -22,23 +22,19 @@ from emetrics import (
 from gnn import GNNNet
 from utils import collate, predicting
 
-project_path = Path(os.getcwd())
+project_path = Path.cwd()
 model_st = GNNNet.__name__
 
 
-def load_model(model_path):
-    model = torch.load(model_path)
-    return model
-
-
-def calculate_metrics(Y: np.ndarray, P: np.ndarray, dataset: str) -> None:
-    cindex = get_cindex(Y, P)  # DeepDTA
-    cindex2 = get_ci(Y, P)  # GraphDTA
-    rm2 = get_rm2(Y, P)  # DeepDTA
-    mse = get_mse(Y, P)
-    pearson = get_pearson(Y, P)
-    spearman = get_spearman(Y, P)
-    rmse = get_rmse(Y, P)
+def calculate_metrics(labels: np.ndarray, predicteds: np.ndarray, dataset: str) -> None:
+    """Calculate the diffrence between the actual and predicted values."""
+    cindex = get_cindex(labels, predicteds)  # DeepDTA
+    cindex2 = get_ci(labels, predicteds)  # GraphDTA
+    rm2 = get_rm2(labels, predicteds)  # DeepDTA
+    mse = get_mse(labels, predicteds)
+    pearson = get_pearson(labels, predicteds)
+    spearman = get_spearman(labels, predicteds)
+    rmse = get_rmse(labels, predicteds)
 
     print("metrics for ", dataset)
     print("cindex:", cindex)
@@ -48,19 +44,23 @@ def calculate_metrics(Y: np.ndarray, P: np.ndarray, dataset: str) -> None:
     print("pearson", pearson)
 
     result_file_name = project_path.joinpath(f"results\result_{model_st}_{dataset}.txt")
-    result_str = f"dataset \r\n rmse:{str(rmse)}  mse:{str(mse)} pearson:{str(pearson)} spearman:{str(spearman)} ci:{str(cindex)} rm2:{str(rm2)}"
+    result_str = f"""dataset \r\n rmse:{str(rmse)}  mse:{str(mse)}
+                     pearson:{str(pearson)} spearman:{str(spearman)}
+                     ci:{str(cindex)} rm2:{str(rm2)}"""
     print(result_str)
-    open(result_file_name, "w").writelines(result_str)
+    result_file_name.open("w").writelines(result_str)
 
 
-def plot_density(Y, P, fold=0, dataset="davis"):
+def plot_density(
+    labels: np.ndarray, predicteds: np.ndarray, fold: int=0, dataset: str="davis"
+) -> None:
     plt.figure(figsize=(10, 5))
     plt.grid(linestyle="--")
     ax = plt.gca()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    plt.scatter(P, Y, color="blue", s=40)
+    plt.scatter(predicteds, labels, color="blue", s=40)
     plt.title("density of " + dataset, fontsize=30, fontweight="bold")
     plt.xlabel("predicted", fontsize=30, fontweight="bold")
     plt.ylabel("measured", fontsize=30, fontweight="bold")
@@ -73,7 +73,7 @@ def plot_density(Y, P, fold=0, dataset="davis"):
     ltext = leg.get_texts()
     plt.setp(ltext, fontsize=12, fontweight="bold")
     plt.savefig(
-        os.path.join("results", f"{dataset}_{str(fold)}.png"),
+        project_path.joinpath("results", f"{dataset}_{str(fold)}.png"),
         dpi=500,
         bbox_inches="tight",
     )
@@ -83,7 +83,7 @@ def main(
     dataset_name: str = typer.Option(..., prompt=True),
     cuda_name: str = typer.Option(..., prompt=True),
     fold_number: int = typer.Option(..., prompt=True),
-):
+) -> None:
     dataset_path = (
         constants.davis_dataset_path
         if dataset_name == "davis"

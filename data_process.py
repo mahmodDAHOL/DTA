@@ -24,6 +24,7 @@ from utils import DTADataset, Graph, to_graph
 
 
 def dic_normalize(dic: dict[str, float]) -> dict[str, float]:
+    """Do normalizing to values of passed dictionary."""
     # get min and max values according to values of passed dictionary
     max_value = dic[max(dic, key=dic.get)]  # type: ignore
     min_value = dic[min(dic, key=dic.get)]  # type: ignore
@@ -37,6 +38,7 @@ def dic_normalize(dic: dict[str, float]) -> dict[str, float]:
 
 
 def residue_features(norm_res_prop: list[dict], residue: str) -> np.ndarray:
+    """Return features of passed residue from norm_res_prop."""
     res_property1 = [
         1 if residue in _list else 0 for _list in constants.protein_properties
     ]
@@ -44,15 +46,16 @@ def residue_features(norm_res_prop: list[dict], residue: str) -> np.ndarray:
     return np.array(res_property1 + res_property2)
 
 
-def one_of_k_encoding(x: str, allowable_set: list, unk: bool = False) -> list[bool]:
-    if x not in allowable_set:
+def one_of_k_encoding(atom: str, allowable_set: list, unk: bool = False) -> list[bool]:
+    """Return one-hot encoding for passed atom."""
+    if atom not in allowable_set:
         if not unk:
-            message = f"input {x} not in allowable set{allowable_set}"
+            message = f"input {atom} not in allowable set{allowable_set}"
             raise ValueError(message)
 
         # Maps inputs not in the allowable set to the last element in allowable_set.
-        x = allowable_set[-1]
-    return [x == s for s in allowable_set]
+        atom = allowable_set[-1]
+    return [atom == s for s in allowable_set]
 
 
 # mol atom feature for mol graph
@@ -76,7 +79,6 @@ def atom_features(atom: Chem.rdchem.Atom) -> np.ndarray:
             [atom_is_aromatic],
         )
     )
-    # return a boolean list with length equals to (44 +11 +11 +11 +1) represents atom features
     return np.array(atom_features)
 
 
@@ -88,9 +90,6 @@ def smile_to_graph(smile: str) -> Graph:
     features = []
     for atom in mol.GetAtoms():
         feature = atom_features(atom)  # get boolean list
-        # divide each item in list by its length, true = 1 , false = 0
-        # so this values (feature / sum(feature)) represrnts number of true relative to false
-        # features list represents whole compound (collection of atoms)
         features.append(feature / sum(feature))
 
     edges = []
@@ -186,7 +185,10 @@ def target_to_graph(
 
 # to judge whether the required files exist
 def valid_target(file_name: str, dataset_path: Path) -> bool:
-    """Make sure that the passed protein file has corresponding pconsc4 and align files."""
+    """
+    Make sure that the passed protein file has corresponding
+    pconsc4 and align files.
+    """
     contact_file = dataset_path.joinpath(f"pconsc4/{file_name}.npy")
     aln_file = dataset_path.joinpath(f"aln/{file_name}.aln")
     return all([contact_file.exists(), aln_file.exists()])
@@ -199,7 +201,10 @@ def validate(
     affinity: np.ndarray,
     folds: list,
 ) -> tuple:
-    """Get combinations of drugs and proteins with affinity strength when meet with each other."""
+    """
+    Get combinations of drugs and proteins with affinity strength
+    when meet with each other.
+    """
     prot_keys = list(proteins_dict.keys())
     rows, cols = np.where(np.isnan(affinity) == False)
     rows, cols = rows[folds], cols[folds]
@@ -230,7 +235,7 @@ def load_data(dataset_path: Path) -> tuple[list, dict, np.ndarray, dict, dict]:
 
     ligands = json.load(Path(ligands_file).open(), object_pairs_hook=OrderedDict)
     proteins_dict = json.load(Path(proteins_file).open(), object_pairs_hook=OrderedDict)
-    affinity = pickle.load(open(affinities_file, "rb"), encoding="latin1")
+    affinity = pickle.load(affinities_file.open("rb"), encoding="latin1")
 
     if dataset_name == "davis":
         affinity = [-np.log10(y / 1e9) for y in affinity]

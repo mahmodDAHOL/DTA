@@ -1,11 +1,12 @@
-import os
+"""All project constants."""
 from pathlib import Path
 
-project_path = Path(os.getcwd())
+project_path = Path.cwd()
 kiba_dataset_path = project_path.joinpath("data/kiba")
 davis_dataset_path = project_path.joinpath("data/davis")
 
-# make list that contains symbols that represent all possible residue that compose protein
+# make list that contains symbols that represent
+# all possible residue that compose protein
 pro_res_list = [
     "A",
     "C",
@@ -30,7 +31,8 @@ pro_res_list = [
     "X",
 ]
 
-# make lists for symbols that make protein with specific properties [aliphatic, aromatic, polar neutral, acidic charged, basic charged]
+# make lists for symbols that make protein with specific
+# properties [aliphatic, aromatic, polar neutral, acidic charged, basic charged]
 pro_res_aliphatic_list = ["A", "I", "L", "M", "V"]
 pro_res_aromatic_list = ["F", "W", "Y"]
 pro_res_polar_neutral_list = ["C", "N", "Q", "S", "T"]

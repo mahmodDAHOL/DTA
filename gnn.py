@@ -1,11 +1,13 @@
+"""Model arcitecture."""
 import torch
 from torch import nn
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool as gep
 
 
-# GCN based model
 class GNNNet(torch.nn.Module):
+    """GCN based model."""
+
     def __init__(
         self,
         n_output=1,
