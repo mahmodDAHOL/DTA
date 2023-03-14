@@ -1,10 +1,10 @@
 """Usefule functions and calsses utils."""
 
 import pickle
-import shelve
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 import numpy as np
 import torch
@@ -16,7 +16,9 @@ from torch_geometric.data import Batch, InMemoryDataset
 from torch_geometric.data.data import BaseData
 from tqdm import tqdm
 
+from exception import CustomException
 from gnn import GNNNet
+from logger import logging
 
 
 @dataclass
@@ -48,7 +50,8 @@ class DTADataset(InMemoryDataset):
         self.dataset_path = Path(root)
         self.process(drugs, target_key, y, smile_graph_dict, target_graph_dict)
         self.dataset_name = self.dataset_path.stem
-        self.processed_data_path = self.dataset_path.joinpath("processedDB")
+        self.processed_data_path = self.dataset_path.joinpath("processed")
+        self.processed_data_path.mkdir(exist_ok=True)
 
     @property
     def processed_file_names(self) -> None:
@@ -73,7 +76,7 @@ class DTADataset(InMemoryDataset):
     ) -> None:
         if not all([len(drugs) == len(target_keys), len(drugs) == len(y)]):
             e = "The three lists must be the same length!"
-            raise Exception(e)
+            raise CustomException(e, sys)
         data_list_mol = []
         data_list_pro = []
         data_len = len(drugs)
@@ -100,11 +103,6 @@ class DTADataset(InMemoryDataset):
     def __getitem__(self, idx: int) -> tuple[geo_data.Data, geo_data.Data]:
         return self.data_mol[idx], self.data_pro[idx]  # type: ignore
 
-    def save(self, fold_number: int, _type: str) -> None:
-        with shelve.open(str(self.processed_data_path)) as db:
-            data_name = f"{_type}-{self.dataset_name}-{fold_number}"
-            db[data_name] = self
-
 
 def _convert(graph: Graph, labels: float) -> geo_data.Data:
     gcn_data = geo_data.Data(
@@ -125,19 +123,23 @@ def to_graph(
     data_type = file_name.split("_")[0]
     if not processed_file.exists():
         if data_type == "smiles":
+            logging.info("converting smiles into graphs...")
             graph_dict = {}
             for key in tqdm(
                 dict_data.values(), desc=f"converting {data_type} to graphs"
             ):
                 graph_dict[key] = to_graph_func(key)
         else:
+            logging.info("converting proteins into graphs..")
             graph_dict = {}
             for key in tqdm(dict_data.keys(), desc=f"converting {data_type} to graphs"):
                 graph = to_graph_func(dataset_path, key, dict_data[key])
                 if graph != 0:
                     graph_dict[key] = to_graph_func(dataset_path, key, dict_data[key])
+        logging.info(f"saving {data_type} in {processed_file}")
         pickle.dump(graph_dict, processed_file.open("wb"))
     else:
+        logging.info(f"loading {data_type} from {processed_file}")
         graph_dict = pickle.load(processed_file.open("rb"))
 
     return graph_dict
@@ -162,7 +164,7 @@ def train(
         loss.backward()
         optimizer.step()
         if idx % LOG_INTERVAL == 0:
-            print(
+            logging.info(
                 f"Train epoch: {epoch} [{idx*BATCH_SIZE}/{data_len} \
                 ({100*idx/len(train_loader)}%)]\tLoss: {loss.item()}"
             )

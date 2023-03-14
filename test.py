@@ -20,6 +20,7 @@ from emetrics import (
     get_spearman,
 )
 from gnn import GNNNet
+from logger import logging
 from utils import collate, predicting
 
 project_path = Path.cwd()
@@ -36,24 +37,25 @@ def calculate_metrics(labels: np.ndarray, predicteds: np.ndarray, dataset: str) 
     spearman = get_spearman(labels, predicteds)
     rmse = get_rmse(labels, predicteds)
 
-    print("metrics for ", dataset)
-    print("cindex:", cindex)
-    print("cindex2", cindex2)
-    print("rm2:", rm2)
-    print("mse:", mse)
-    print("pearson", pearson)
+    logging.info(f"metrics for: {dataset}")
+    logging.info(f"cindex: {cindex}")
+    logging.info(f"cindex2: {cindex2}")
+    logging.info(f"rm2: {rm2}")
+    logging.info(f"mse: {mse}")
+    logging.info(f"pearson: {pearson}")
 
     result_file_name = project_path.joinpath(f"results\result_{model_st}_{dataset}.txt")
     result_str = f"""dataset \r\n rmse:{str(rmse)}  mse:{str(mse)}
                      pearson:{str(pearson)} spearman:{str(spearman)}
                      ci:{str(cindex)} rm2:{str(rm2)}"""
-    print(result_str)
+    logging.info(result_str)
     result_file_name.open("w").writelines(result_str)
 
 
 def plot_density(
-    labels: np.ndarray, predicteds: np.ndarray, fold: int=0, dataset: str="davis"
+    labels: np.ndarray, predicteds: np.ndarray, fold: int = 0, dataset: str = "davis"
 ) -> None:
+    """Plot density."""
     plt.figure(figsize=(10, 5))
     plt.grid(linestyle="--")
     ax = plt.gca()
@@ -82,8 +84,8 @@ def plot_density(
 def main(
     dataset_name: str = typer.Option(..., prompt=True),
     cuda_name: str = typer.Option(..., prompt=True),
-    fold_number: int = typer.Option(..., prompt=True),
 ) -> None:
+    """Test."""
     dataset_path = (
         constants.davis_dataset_path
         if dataset_name == "davis"
@@ -99,13 +101,7 @@ def main(
     model.to(device)
     model.load_state_dict(torch.load(model_file_name, map_location=cuda_name))
 
-    processed_data_path = dataset_path.joinpath("processedDB")
-    if processed_data_path:
-        with shelve.open(str(processed_data_path)) as db:
-            test_data_name = f"test-{dataset_name}-{fold_number}"
-            test_data = db[test_data_name]
-    else:
-        test_data = create_test_data(dataset_path)
+    test_data = create_test_data(dataset_path)
 
     test_loader = DataLoader(
         test_data, batch_size=TEST_BATCH_SIZE, shuffle=False, collate_fn=collate

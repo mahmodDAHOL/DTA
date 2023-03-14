@@ -4,6 +4,8 @@ from torch import nn
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool as gep
 
+from logger import logging
+
 
 class GNNNet(torch.nn.Module):
     """GCN based model."""
@@ -18,7 +20,7 @@ class GNNNet(torch.nn.Module):
     ) -> None:
         super().__init__()
 
-        print("GNNNet Loaded")
+        logging.info("GNNNet Loaded")
         self.n_output = n_output
         self.mol_conv1 = GCNConv(num_features_mol, num_features_mol)
         self.mol_conv2 = GCNConv(num_features_mol, num_features_mol * 2)
@@ -96,5 +98,4 @@ class GNNNet(torch.nn.Module):
         xc = self.fc2(xc)
         xc = self.relu(xc)
         xc = self.dropout(xc)
-        out = self.out(xc)
-        return out
+        return self.out(xc)

@@ -3,6 +3,7 @@ PYTHON = ./venv/bin/python
 PIP = ./venv/bin/pip
 RUFF = ./venv/bin/ruff
 BLACK = ./venv/bin/black
+IGNORE = "E712","COM812","D212","D203","UP007","N806","TCH003","TCH002","TCH001","D105","ANN101","PLR0913","PGH003","D102","D107","D205","FBT001","FBT002","B905","B008","G004"
 
 all: install format
 
@@ -18,12 +19,11 @@ install: requirements.txt
 	$(PIP) install torch-geometric
 
 format: $(VENV)/bin/ruff
-	$(RUFF) check --fix --select ALL --ignore "E712","COM812","D212","D203","UP007","N806","TCH003","TCH002","TCH001","D105","ANN101","PLR0913","PGH003","D102","D107","D205","FBT001","FBT002","B905","B008" .
+	$(RUFF) check --fix --select ALL --ignore  ${IGNORE} .
 	$(BLACK) .
 
 run: $(VENV)/bin/python
-	$(PYTHON) data_process.py --fold-number 4
-	$(PYTHON) training_5folds.py --cuda-name "" --fold-number 4 
+	$(PYTHON) training_5folds.py --cuda-name "" 
 	$(PYTHON) test.py --dataset-name "davis" --cuda-name "" --fold-number 4
 
 clean:
