@@ -17,6 +17,7 @@ from torch_geometric.data.data import BaseData
 from tqdm import tqdm
 
 from gnn import GNNNet
+from logger import logging
 
 
 @dataclass
@@ -93,7 +94,7 @@ class DTADataset(InMemoryDataset):
 
         self.data_mol: list[geo_data.Data] = data_list_mol
         self.data_pro: list[geo_data.Data] = data_list_pro
-
+        
     def __len__(self) -> int:
         return len(self.data_mol)
 
@@ -125,19 +126,23 @@ def to_graph(
     data_type = file_name.split("_")[0]
     if not processed_file.exists():
         if data_type == "smiles":
+            logging.info("converting smiles into graphs...")
             graph_dict = {}
             for key in tqdm(
                 dict_data.values(), desc=f"converting {data_type} to graphs"
             ):
                 graph_dict[key] = to_graph_func(key)
         else:
+            logging.info("converting proteins into graphs..")
             graph_dict = {}
             for key in tqdm(dict_data.keys(), desc=f"converting {data_type} to graphs"):
                 graph = to_graph_func(dataset_path, key, dict_data[key])
                 if graph != 0:
                     graph_dict[key] = to_graph_func(dataset_path, key, dict_data[key])
+        logging.info(f"saving {data_type} in {processed_file}")
         pickle.dump(graph_dict, processed_file.open("wb"))
     else:
+        logging.info(f"loading {data_type} from {processed_file}")
         graph_dict = pickle.load(processed_file.open("rb"))
 
     return graph_dict

@@ -20,6 +20,7 @@ from rdkit import Chem
 from tqdm import tqdm
 
 import constants
+from logger import logging
 from utils import DTADataset, Graph, to_graph
 
 
@@ -163,6 +164,7 @@ def target_to_graph(
     try:
         contact_map = np.load(contact_file)
     except FileNotFoundError:
+        logging.warning(f"{target_key}.npy not found in {contact_dir}, skip...")
         return 0
     contact_map += np.matrix(np.eye(contact_map.shape[0]))
     threshold = 0.5
@@ -215,6 +217,7 @@ def validate(
     for pair_ind in range(len(rows)):
         # ensure the contact and aln files exists
         if not valid_target(prot_keys[cols[pair_ind]], dataset_path):
+            logging.warning(f"{prot_keys[cols[pair_ind]]} not valid, skip...")
             continue
         drugs_list.append(drugs[rows[pair_ind]])
         prot_names.append(prot_keys[cols[pair_ind]])
@@ -263,9 +266,12 @@ def load_data(dataset_path: Path) -> tuple[list, dict, np.ndarray, dict, dict]:
 
 def create_data(dataset_path: Path, fold_setting: list) -> DTADataset:
     """Create DTADataset object after loading data and validat it."""
+    logging.info(f"loading data from {dataset_path}")
     mol_drugs, proteins_dict, affinity, smile_graph_dict, target_graph_dict = load_data(
         dataset_path
     )
+    
+    logging.info(f"validating data from {dataset_path}")
     smiles, prot_names, affinity = validate(
         dataset_path, mol_drugs, proteins_dict, affinity, fold_setting
     )
@@ -299,15 +305,35 @@ def create_train_data(
     return train_data, valid_data
 
 
+import gc
+import sys
+
+
+def actualsize(input_obj):
+    memory_size = 0
+    ids = set()
+    objects = [input_obj]
+    while objects:
+        new = []
+        for obj in objects:
+            if id(obj) not in ids:
+                ids.add(id(obj))
+                memory_size += sys.getsizeof(obj)
+                new.append(obj)
+        objects = gc.get_referents(*new)
+    return memory_size
+
+
 def main(fold_number: int = typer.Option(..., prompt=True)) -> None:
     """
     Create DTADataset object for train, test and validation data
     and save them in disk.
     """
-    for data in ["kiba", "davis"]:
+    for data in ["davis", "kiba"]:
+        logging.info(f"working on {data} dataset")
         dataset_path = constants.project_path.joinpath(f"data/{data}")
-        train_dataset, valid_dataset = create_train_data(dataset_path, fold_number)
         test_dataset = create_test_data(dataset_path)
+        train_dataset, valid_dataset = create_train_data(dataset_path, fold_number)
 
         train_dataset.save(fold_number, "train")
         valid_dataset.save(fold_number, "valid")
