@@ -55,29 +55,22 @@ def main(
         )
 
         best_mse = 1000
-        best_test_mse = 1000
         best_epoch = -1
         model_file_path = models_dir.joinpath(model_file_name)
 
         for epoch in range(1, NUM_EPOCHS):
             train(model, device, train_loader, optimizer, epoch)
-            logging.info("predicting for valid data")
             G, P = predicting(model, device, valid_loader)
             val = get_mse(G, P)
-            logging.info(f"valid result: {val} {best_mse}")
+            logging.info(f"validation result: {val:.4f} | {best_mse=:.4f}")
             if val < best_mse:
                 best_mse = val
                 best_epoch = epoch
-                torch.save(model.state_dict(), model_file_path)
-                logging.info(
-                    f"""rmse improved at epoch {best_epoch}; {best_test_mse}
-                    {best_mse} {model_st} {dataset_path} {fold_number}"""
-                )
+                if epoch % 10 == 0:
+                    torch.save(model.state_dict(), model_file_path)
+                logging.info(f"rmse improved at epoch {best_epoch} | {best_mse=:.4f}")
             else:
-                logging.info(
-                    f"""No improvement since epoch{best_epoch}; {best_test_mse}
-                    {best_mse} {model_st} {dataset_path} {fold_number}"""
-                )
+                logging.info(f"No improvement since epoch {best_epoch} | {best_mse=:.4f}")
 
 
 if __name__ == "__main__":

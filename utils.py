@@ -165,8 +165,7 @@ def train(
         optimizer.step()
         if idx % LOG_INTERVAL == 0:
             logging.info(
-                f"Train epoch: {epoch} [{idx*BATCH_SIZE}/{data_len} \
-                ({100*idx/len(train_loader)}%)]\tLoss: {loss.item()}"
+                f"Train epoch: {epoch} [{idx*BATCH_SIZE}/{data_len}\tLoss: {loss.item()}"
             )
 
 

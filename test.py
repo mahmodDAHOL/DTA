@@ -53,7 +53,7 @@ def calculate_metrics(labels: np.ndarray, predicteds: np.ndarray, dataset: str) 
 
 
 def plot_density(
-    labels: np.ndarray, predicteds: np.ndarray, fold: int = 0, dataset: str = "davis"
+    labels: np.ndarray, predicteds: np.ndarray, fold: int, dataset: str
 ) -> None:
     """Plot density."""
     plt.figure(figsize=(10, 5))
