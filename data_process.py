@@ -223,7 +223,6 @@ def validate(
     for pair_ind in range(len(rows)):
         # ensure the contact and aln files exists
         if not valid_target(prot_keys[cols[pair_ind]], dataset_path):
-            logging.warning(f"{prot_keys[cols[pair_ind]]} not valid, skip...")
             continue
         drugs_list.append(drugs[rows[pair_ind]])
         prot_names.append(prot_keys[cols[pair_ind]])
@@ -310,18 +309,3 @@ def create_train_data(
     valid_data = create_data(dataset_path, valid_fold)
     return train_data, valid_data
 
-
-def main(fold_number: int = typer.Option(..., prompt=True)) -> None:
-    """
-    Create DTADataset object for train, test and validation data
-    and save them in disk.
-    """
-    for data in ["davis", "kiba"]:
-        logging.info(f"working on {data} dataset")
-        dataset_path = constants.project_path.joinpath(f"data/{data}")
-        train_dataset, valid_dataset = create_train_data(dataset_path, fold_number)
-        test_dataset = create_test_data(dataset_path)
-
-
-if __name__ == "__main__":
-    typer.run(main)

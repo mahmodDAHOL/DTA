@@ -15,13 +15,15 @@ from torch_geometric import data as geo_data
 from torch_geometric.data import Batch, InMemoryDataset
 from torch_geometric.data.data import BaseData
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
+from emetrics import get_cindex
 
 from exception import CustomException
 from gnn import GNNNet
 from logger import logging
 
 
-@dataclass
+@dataclass(slots=True)
 class Graph:
     """Data structure represents graph elements and info."""
 
@@ -50,8 +52,6 @@ class DTADataset(InMemoryDataset):
         self.dataset_path = Path(root)
         self.process(drugs, target_key, y, smile_graph_dict, target_graph_dict)
         self.dataset_name = self.dataset_path.stem
-        self.processed_data_path = self.dataset_path.joinpath("processed")
-        self.processed_data_path.mkdir(exist_ok=True)
 
     @property
     def processed_file_names(self) -> None:
@@ -147,7 +147,12 @@ def to_graph(
 
 # training function at each epoch
 def train(
-    model: GNNNet, device: device, train_loader: DataLoader, optimizer: Adam, epoch: int
+    model: GNNNet,
+    device: device,
+    train_loader: DataLoader,
+    optimizer: Adam,
+    epoch: int,
+    writer: SummaryWriter,
 ) -> None:
     """Train GNN of the training data."""
     model.train()
@@ -158,14 +163,19 @@ def train(
     for idx, data in enumerate(train_loader):
         data_mol = data[0].to(device)
         data_pro = data[1].to(device)
+        writer.add_graph(model, (data_mol, data_pro))
         optimizer.zero_grad()
         output = model(data_mol, data_pro)
         loss = loss_fn(output, data_mol.y.view(-1, 1).float().to(device))
+        cindex = get_cindex(output, data_mol.y.view(-1, 1).float().to(device))
+        writer.add_scalar("Loss/train", loss, epoch)
+        writer.add_scalar("cindex/train", cindex, epoch)
+
         loss.backward()
         optimizer.step()
         if idx % LOG_INTERVAL == 0:
             logging.info(
-                f"Train epoch: {epoch} [{idx*BATCH_SIZE}/{data_len}\tLoss: {loss.item()}"
+                f"Train epoch: {epoch} [{idx*BATCH_SIZE}/{data_len}] Loss: {loss.item()}"
             )
 
 

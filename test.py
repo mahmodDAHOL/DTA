@@ -1,5 +1,4 @@
 """Contain functions for test the model from test dataset."""
-import shelve
 from pathlib import Path
 
 import matplotlib.pyplot as plt
