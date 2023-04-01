@@ -15,7 +15,6 @@ from typing import Union
 
 import networkx as nx
 import numpy as np
-import typer
 from rdkit import Chem
 from tqdm import tqdm
 
@@ -249,7 +248,8 @@ def load_data(dataset_path: Path) -> tuple[list, dict, np.ndarray, dict, dict]:
         affinity = [-np.log10(y / 1e9) for y in affinity]
     mol_drugs = []
     ligands_dict = {}
-    for d in tqdm(ligands.keys(), desc=f"loading data from {str(dataset_path)}"): # type: ignore
+    for d in tqdm(ligands.keys(),
+                  desc=f"loading data from {str(dataset_path)}"): # type: ignore
         ligand = Chem.MolToSmiles(  # type: ignore
             Chem.MolFromSmiles(ligands[d]),  # type: ignore
             isomericSmiles=True,

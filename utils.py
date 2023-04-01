@@ -1,29 +1,29 @@
 """Usefule functions and calsses utils."""
 
 import pickle
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-import sys
 
 import numpy as np
 import torch
 from torch import device
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torch_geometric import data as geo_data
 from torch_geometric.data import Batch, InMemoryDataset
 from torch_geometric.data.data import BaseData
 from tqdm import tqdm
-from torch.utils.tensorboard import SummaryWriter
-from emetrics import get_cindex
 
+from emetrics import get_cindex
 from exception import CustomException
 from gnn import GNNNet
 from logger import logging
 
 
-@dataclass(slots=True)
+@dataclass()
 class Graph:
     """Data structure represents graph elements and info."""
 
@@ -163,7 +163,6 @@ def train(
     for idx, data in enumerate(train_loader):
         data_mol = data[0].to(device)
         data_pro = data[1].to(device)
-        writer.add_graph(model, (data_mol, data_pro))
         optimizer.zero_grad()
         output = model(data_mol, data_pro)
         loss = loss_fn(output, data_mol.y.view(-1, 1).float().to(device))
@@ -175,7 +174,7 @@ def train(
         optimizer.step()
         if idx % LOG_INTERVAL == 0:
             logging.info(
-                f"Train epoch: {epoch} [{idx*BATCH_SIZE}/{data_len}] Loss: {loss.item()}"
+              f"Train epoch: {epoch} [{idx*BATCH_SIZE}/{data_len}] Loss: {loss.item()}"
             )
 
 

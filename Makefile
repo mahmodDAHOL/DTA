@@ -28,7 +28,7 @@ format: $(VENV)/bin/ruff
 	$(BLACK) .
 
 run: $(VENV)/bin/python
-	$(PYTHON) training_5folds.py --cuda-name "cuda:0" --fold-number 4
+	$(PYTHON) training_5folds.py --cuda-name "cuda:0" --dataset-name "davis" --fold-number 4
 	$(PYTHON) test.py --dataset-name "davis" --cuda-name "cuda:0" 
 
 clean:
