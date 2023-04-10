@@ -4,8 +4,8 @@ PIP = ./venv/bin/pip
 RUFF = ./venv/bin/ruff
 BLACK = ./venv/bin/black
 GDOWN = ./venv/bin/gdown
-IGNORE = "E712","COM812","D212","D203","UP007","N806","TCH003","TCH002","TCH001","D105","ANN101","PLR0913","PGH003","D102","D107","D205","FBT001","FBT002","B905","B008","G004"
-DATASET_LINK = https://drive.google.com/file/d/1yuigaLiaUMcw_gPlOnIXVtFTRcYARtAe/view?usp=share_link
+IGNORE = "E712","COM812","D212","D203","UP007","N806","TCH003","TCH002","TCH001","D105","ANN101","PLR0913","PGH003","D102","D107","D205","FBT001","FBT002","B905","B008","G004","FBT003"
+DATASET_LINK = https://drive.google.com/file/d/1CJIvzSDgZXSgTB5CpCutwShs7Xs2rEkk/view?usp=share_link
 
 all: install format
 
@@ -20,8 +20,8 @@ install: requirements.txt
 	$(PIP) install --no-index torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.12.1+cpu.html
 	$(PIP) install torch-geometric
 	$(GDOWN) --fuzzy ${DATASET_LINK}
-	unzip data.zip 
-	rm data.zip
+	unzip davis.zip 
+	rm davis.zip
 
 format: $(VENV)/bin/ruff
 	$(RUFF) check --fix --select ALL --ignore  ${IGNORE} .
@@ -34,4 +34,4 @@ run: $(VENV)/bin/python
 clean:
 	rm -rf __pycache__ .ruff_cache
 	rm -rf $(VENV)
-	rm data
+	rm -rf data

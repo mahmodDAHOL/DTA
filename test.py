@@ -1,5 +1,5 @@
 """Contain functions for test the model from test dataset."""
-from pathlib import Path
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,6 +8,7 @@ import typer
 from torch.utils.data import DataLoader
 
 import constants
+from constants import project_path
 from data_process import create_test_data
 from emetrics import (
     get_ci,
@@ -18,11 +19,12 @@ from emetrics import (
     get_rmse,
     get_spearman,
 )
+
+from exception import CustomException
 from gnn import GNNNet
 from logger import logging
 from utils import collate, predicting
 
-project_path = Path.cwd()
 model_st = GNNNet.__name__
 
 
@@ -83,6 +85,7 @@ def plot_density(
 def main(
     dataset_name: str = typer.Option(..., prompt=True),
     cuda_name: str = typer.Option(..., prompt=True),
+    fold_number: int = typer.Option(..., prompt=True),
 ) -> None:
     """Test."""
     dataset_path = (
@@ -90,8 +93,13 @@ def main(
         if dataset_name == "davis"
         else constants.kiba_dataset_path
     )
+    models_dir = project_path.joinpath(f"models/{fold_number}")
+    model_path = next(models_dir.glob("*")) if list(models_dir.glob("*")) else None
+    if not model_path.exists():
+        e = "there is no model to test it."
+        raise CustomException(e, sys)
+   
     TEST_BATCH_SIZE = 512
-    models_dir = project_path.joinpath("models")
 
     device = torch.device(cuda_name if torch.cuda.is_available() else "cpu")
     model_file_name = models_dir.joinpath(f"model_{model_st}_{dataset_name}.model")
