@@ -18,9 +18,9 @@ import numpy as np
 from rdkit import Chem
 from tqdm import tqdm
 
-import constants
-from logger import logging
-from utils import DTADataset, Graph, to_graph
+from . import constants
+from .logger import logging
+from .utils import DTADataset, Graph, to_graph
 
 
 def dic_normalize(dic: dict[str, float]) -> dict[str, float]:
@@ -86,7 +86,7 @@ def atom_features(atom: Chem.rdchem.Atom) -> np.ndarray:
 def smile_to_graph(smile: str) -> Graph:
     """Convert passed smile ligand to graph object."""
     mol = Chem.MolFromSmiles(smile)  # type: ignore
-    c_size = mol.GetNumAtoms()
+    size = mol.GetNumAtoms()
     features = []
     for atom in mol.GetAtoms():
         feature = atom_features(atom)  # get boolean list
@@ -97,7 +97,7 @@ def smile_to_graph(smile: str) -> Graph:
         edges.append([bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()])
     g = nx.Graph(edges).to_directed()
     edge_index = []
-    mol_adj = np.zeros((c_size, c_size))
+    mol_adj = np.zeros((size, size))
     for e1, e2 in g.edges:  # type: ignore
         mol_adj[e1, e2] = 1
     mol_adj += np.matrix(np.eye(mol_adj.shape[0]))  # there is self edge
@@ -107,7 +107,7 @@ def smile_to_graph(smile: str) -> Graph:
     index_row, index_col = np.where(mol_adj >= threshold)
     for i, j in zip(index_row, index_col):
         edge_index.append([i, j])
-    return Graph(np.array(c_size), np.array(features), np.array(edge_index))
+    return Graph(np.array(size), np.array(features), np.array(edge_index))
 
 
 def pssm_calculation(aln_file: Path, pro_seq: str) -> np.ndarray:

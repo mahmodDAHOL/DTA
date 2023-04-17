@@ -23,11 +23,11 @@ from torch_geometric.utils.convert import to_networkx
 from torchvision import transforms
 from tqdm import tqdm
 
-from constants import project_path
-from emetrics import get_cindex
-from exception import CustomException
-from gnn import GNNNet
-from logger import logging
+from .constants import project_path
+from .emetrics import get_cindex
+from .exception import CustomException
+from .gnn import GNNNet
+from .logger import logging
 
 
 @dataclass()

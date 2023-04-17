@@ -1,11 +1,11 @@
-data
+/data
 .vscode
 .ruff_cache
 __pycache__/
 venv
 models
 results
-test
 logs
 runs
 graph_images
+.pytest_cache

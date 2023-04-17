@@ -6,12 +6,12 @@ import typer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-import constants
-from data_process import create_train_data
-from emetrics import get_cindex, get_mse
-from gnn import GNNNet
-from logger import logging
-from utils import collate, plot_sample, predicting, train
+from . import constants
+from .data_process import create_train_data
+from .emetrics import get_cindex, get_mse
+from .gnn import GNNNet
+from .logger import logging
+from .utils import collate, plot_sample, predicting, train
 
 
 def main(

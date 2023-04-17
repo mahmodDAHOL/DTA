@@ -7,10 +7,15 @@ import torch
 import typer
 from torch.utils.data import DataLoader
 
-import constants
-from constants import project_path
-from data_process import create_test_data
-from emetrics import (
+from src.exception import CustomException
+from src.gnn import GNNNet
+from src.logger import logging
+from src.utils import collate, predicting
+
+from . import constants
+from .constants import project_path
+from .data_process import create_test_data
+from .emetrics import (
     get_ci,
     get_cindex,
     get_mse,
@@ -19,11 +24,6 @@ from emetrics import (
     get_rmse,
     get_spearman,
 )
-
-from exception import CustomException
-from gnn import GNNNet
-from logger import logging
-from utils import collate, predicting
 
 model_st = GNNNet.__name__
 
@@ -98,7 +98,7 @@ def main(
     if not model_path.exists():
         e = "there is no model to test it."
         raise CustomException(e, sys)
-   
+
     TEST_BATCH_SIZE = 512
 
     device = torch.device(cuda_name if torch.cuda.is_available() else "cpu")

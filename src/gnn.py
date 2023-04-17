@@ -4,7 +4,7 @@ from torch import nn
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool as gep
 
-from logger import logging
+from .logger import logging
 
 
 class GNNNet(torch.nn.Module):

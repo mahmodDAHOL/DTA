@@ -24,14 +24,17 @@ install: requirements.txt
 	rm davis.zip
 
 format: $(VENV)/bin/ruff
-	$(RUFF) check --fix --select ALL --ignore  ${IGNORE} .
-	$(BLACK) .
+	$(RUFF) check --fix --select ALL --ignore  ${IGNORE} src
+	$(BLACK) src
+
+test: tests
+	python -m pytest 
 
 run: $(VENV)/bin/python
-	$(PYTHON) training_5folds.py --cuda-name "cuda:0" --dataset-name "davis" --fold-number 4
-	$(PYTHON) test.py --dataset-name "davis" --cuda-name "cuda:0" 
+	$(PYTHON) -m src.training_5folds.py --cuda-name "cuda:0" --dataset-name "davis" --fold-number 4
+	$(PYTHON) -m src.eval.py --dataset-name "davis" --cuda-name "cuda:0" 
 
 clean:
-	rm -rf __pycache__ .ruff_cache
+	rm -rf __pycache__ .ruff_cache .pytest_cache
 	rm -rf $(VENV)
 	rm -rf data
