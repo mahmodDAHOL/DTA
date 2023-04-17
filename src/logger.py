@@ -1,10 +1,10 @@
 """Logging the outputs to log file."""
 import logging
 from datetime import datetime, timezone
-from pathlib import Path
+
+from .constants import project_path
 
 LOG_FILE = f"{datetime.now(timezone.utc).strftime('%m_%d_%Y_%H_%M_%S')}.log"
-project_path = Path.cwd()
 log_folder = project_path.joinpath("logs")
 log_folder.mkdir(exist_ok=True)
 LOG_FILE_PATH = log_folder.joinpath(LOG_FILE)

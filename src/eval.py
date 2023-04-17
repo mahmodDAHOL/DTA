@@ -1,5 +1,6 @@
 """Contain functions for test the model from test dataset."""
 import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,28 +8,21 @@ import torch
 import typer
 from torch.utils.data import DataLoader
 
-import constants
-from constants import project_path
-from data_process import create_test_data
-from emetrics import (
-    get_ci,
-    get_cindex,
-    get_mse,
-    get_pearson,
-    get_rm2,
-    get_rmse,
-    get_spearman,
-)
+from src.exception import CustomException
+from src.gnn import GNNNet
+from src.logger import logging
+from src.utils import collate, predicting
 
-from exception import CustomException
-from gnn import GNNNet
-from logger import logging
-from utils import collate, predicting
+from . import constants
+from .constants import project_path
+from .data_process import create_test_data
+from .emetrics import (get_ci, get_cindex, get_mse, get_pearson, get_rm2,
+                       get_rmse, get_spearman)
 
 model_st = GNNNet.__name__
 
 
-def calculate_metrics(labels: np.ndarray, predicteds: np.ndarray, dataset: str) -> None:
+def calculate_metrics(labels: np.ndarray, predicteds: np.ndarray, dataset: str, fold_number: int) -> None:
     """Calculate the diffrence between the actual and predicted values."""
     cindex = get_cindex(labels, predicteds)  # DeepDTA
     cindex2 = get_ci(labels, predicteds)  # GraphDTA
@@ -45,12 +39,13 @@ def calculate_metrics(labels: np.ndarray, predicteds: np.ndarray, dataset: str) 
     logging.info(f"mse: {mse}")
     logging.info(f"pearson: {pearson}")
 
-    result_file_name = project_path.joinpath(f"results\result_{model_st}_{dataset}.txt")
-    result_str = f"""dataset \r\n rmse:{str(rmse)}  mse:{str(mse)}
-                     pearson:{str(pearson)} spearman:{str(spearman)}
-                     ci:{str(cindex)} rm2:{str(rm2)}"""
+    result_path = Path(f"/content/drive/MyDrive/results")
+    result_path.mkdir(exist_ok=True)
+    result_file_path = result_path.joinpath(f"result_{dataset}_fold_{fold_number}.txt")
+    result_list = {'rmse':rmse, 'mse':mse, 'pearson':pearson,  'spearman':spearman, 'cindex':cindex, 'spearman':spearman}
+    result_str = "\n".join([f'{name} : {value}' for name, value in result_list.items()])
     logging.info(result_str)
-    result_file_name.open("w").writelines(result_str)
+    result_file_path.open("w").writelines(result_str)
 
 
 def plot_density(
@@ -76,7 +71,7 @@ def plot_density(
     ltext = leg.get_texts()
     plt.setp(ltext, fontsize=12, fontweight="bold")
     plt.savefig(
-        project_path.joinpath("results", f"{dataset}_{str(fold)}.png"),
+        f"/content/drive/MyDrive/results", f"{dataset}_{str(fold)}.png",
         dpi=500,
         bbox_inches="tight",
     )
@@ -93,20 +88,19 @@ def main(
         if dataset_name == "davis"
         else constants.kiba_dataset_path
     )
-    models_dir = project_path.joinpath(f"models/{fold_number}")
+    models_dir = Path(f"/content/drive/MyDrive/models/{fold_number}")
     model_path = next(models_dir.glob("*")) if list(models_dir.glob("*")) else None
     if not model_path.exists():
         e = "there is no model to test it."
         raise CustomException(e, sys)
-   
+
     TEST_BATCH_SIZE = 512
 
     device = torch.device(cuda_name if torch.cuda.is_available() else "cpu")
-    model_file_name = models_dir.joinpath(f"model_{model_st}_{dataset_name}.model")
 
     model = GNNNet()
     model.to(device)
-    model.load_state_dict(torch.load(model_file_name, map_location=cuda_name))
+    model.load_state_dict(torch.load(model_path))
 
     test_data = create_test_data(dataset_path)
 
@@ -115,7 +109,7 @@ def main(
     )
 
     Y, P = predicting(model, device, test_loader)
-    calculate_metrics(Y, P, dataset_name)
+    calculate_metrics(Y, P, dataset_name, fold_number)
 
 
 if __name__ == "__main__":

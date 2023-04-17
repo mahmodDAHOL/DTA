@@ -1,7 +1,8 @@
 """All project constants."""
 from pathlib import Path
 
-project_path = Path.cwd()
+project_path = Path(__file__).parent.parent
+
 kiba_dataset_path = project_path.joinpath("data/kiba")
 davis_dataset_path = project_path.joinpath("data/davis")
 
